@@ -1,0 +1,1985 @@
+openapi: 3.0.0
+info:
+  description: 'Die ist die vorläufige REST-artige Schnittstelle, für das Dia-PC Projekt.
+    Diese Schnittstelle ist nicht REST, da sie nicht Hypermedialität benutzt - Das
+    bedeutet, der Client muss selbt Anfragen konstruieren. '
+  title: Diabetes Web-App
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Swagger
+  url: http://swagger.io
+tags:
+- description: Basis-Daten über synchronisierte Tagebücher.
+  name: diaries
+- description: Tags eines Tagebuches
+  name: Tagebücher-Tags
+- description: Insuline eines Tagebuches
+  name: Tagebücher-Insuline
+- description: Medikamente eines Tagebuches
+  name: Tagebücher-Medikamente
+- description: Nahrungen eines Tagebuches
+  name: Tagebücher-Essensdatenbank
+- description: Operationen in Bezug auf Kontexte
+  name: Kontexte
+- description: Einträge von Tagebüchern.
+  name: Einträge
+- description: Operations about users
+  name: user-management
+- description: Operations about grants
+  name: grant-management
+- description: Utility-operations
+  name: util
+paths:
+  /diaries:
+    post:
+      description: Der Owner wird automatisch durch die Authentifizierung ermittelt.
+        Generell sollten Name und Patient bei Repräsentation angegeben werden, können
+        aber auch leer ("") bleiben.
+      operationId: addDiary
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Diary'
+        description: Eine Tagebuch Repräsentation
+      responses:
+        201:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/full-diary'
+          description: Das Tagebuch wurde erfolgreich erstellt. Falls der Client im
+            Accept-Header eine Repräsentation erwartet, wird ein JSON-Objekt zurück
+            gegeben. Wie hier die Adresse der neu erstellten Ressource zurückgegeben
+            wird, muss nochmal überprüft werden, da eine plötzliche Rückgabe einer
+            URL einen Bruch der Nicht-Hypermedialität darstellt! <br> Irgendwie ist
+            es auch nicht klar, wie man OpenAPI dazu bringt, einfach keinen Accept-Header
+            zu schicken, wenn man keine Repräsentation erwartet.
+          headers:
+            location:
+              description: Die URL des erstellten Tagebuches
+              explode: false
+              schema:
+                type: string
+              style: simple
+        401:
+          description: Eine Anmeldung ist erforderlich, um ein Tagebuch zu erstellen.
+        400:
+          description: Die Anfrage war fehlerhaft.
+      security:
+      - basicAuth: []
+      summary: Erzeuge ein neues Tagebuch.
+      tags:
+      - diaries
+      x-openapi-router-controller: DiariesController
+      x-openapi-router-service: DiariesService
+  /diaries/{diaryId}/food:
+    get:
+      description: Zu den statischen Informationen zählen Name des Tagebuchs, Patient,
+        Medikamente und Insuline. Diese Informationen werden nicht zeitlich versioniert.
+      operationId: getDiary
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/full-diary'
+          description: Eine Repräsentation eines Tagebuches.
+        401:
+          description: Eine Anmeldung ist erforderlich.
+        403:
+          description: Der Nutzer hat nicht geügend Rechte, um diese Aktion auszuführen.
+        400:
+          description: Die Anfrage war fehlerhaft.
+      security:
+      - basicAuth: []
+      summary: 'Bekomme alle Nahrungen des '
+      tags:
+      - Tagebücher-Essensdatenbank
+      x-openapi-router-controller: TagebcherEssensdatenbankController
+      x-openapi-router-service: TagebcherEssensdatenbankService
+  /diaries/{diaryId}:
+    delete:
+      description: Nur der Besitzer eines Tagebuches kann auch das Tagebuch löschen.
+        Dieses Recht wird implizit aus der Authentifizierung abgeleitet und kann nicht
+        delegiert werden.
+      operationId: deleteDiary
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        202:
+          description: Das Tagebuch wird gelöscht (wurde aber noch nicht zwingend
+            gelöscht).
+        400:
+          description: Die Anfrage war fehlerhaft.
+        401:
+          description: Eine Anmeldung ist erforderlich.
+        403:
+          description: Der Nutzer hat nicht geügend Rechte, um diese Aktion auszuführen.
+      security:
+      - basicAuth: []
+      summary: Ein Tagebuch löschen.
+      tags:
+      - diaries
+      x-openapi-router-controller: DiariesController
+      x-openapi-router-service: DiariesService
+    get:
+      description: Zu den statischen Informationen zählen Name des Tagebuchs, Patient,
+        Medikamente und Insuline. Diese Informationen werden nicht zeitlich versioniert.
+      operationId: getDiary2
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/full-diary'
+          description: Eine Repräsentation eines Tagebuches.
+        401:
+          description: Eine Anmeldung ist erforderlich.
+        403:
+          description: Der Nutzer hat nicht geügend Rechte, um diese Aktion auszuführen.
+        400:
+          description: Die Anfrage war fehlerhaft.
+      security:
+      - basicAuth: []
+      summary: Bekomme alle statischen Informationen über ein Tagebuch.
+      tags:
+      - diaries
+      x-openapi-router-controller: DiariesController
+      x-openapi-router-service: DiariesService
+    patch:
+      description: An dieser Stelle können die Basis Informationen eines Tagebuches
+        aktualisiert werden. Um Medikamente, Insuline oder Tags zu aktualisieren,
+        müssen die einzelnen Sub-Ressourcen verwendet werden. An dieser Stelle ist
+        zu sehen, dass es nicht vorgesehen ist, den Besitzer eines Tagebuches zu ändern.
+      operationId: updateDiary
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        $ref: '#/components/requestBodies/inline_object'
+        content:
+          application/json:
+            schema:
+              properties:
+                patient:
+                  type: string
+                name:
+                  type: string
+              type: object
+        description: Eine eingeschränkte Tagebuch Repräsentation
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/full-diary'
+          description: Die Tagebuch informationen wurden erfolreich aktualisiert.
+            Falls der Client im Accept-Header eine Repräsentation erwartet, wird ein
+            JSON-Objekt zurück gegeben.
+        400:
+          description: Die Anfrage war fehlerhaft.
+        401:
+          description: Eine Anmeldung ist erforderlich.
+        403:
+          description: Der Nutzer hat nicht geügend Rechte, um diese Aktion auszuführen.
+      security:
+      - basicAuth: []
+      summary: Die statischen Tagebuch infomrationen aktualisieren.
+      tags:
+      - diaries
+      x-openapi-router-controller: DiariesController
+      x-openapi-router-service: DiariesService
+  /diaries/{diaryId}/tags:
+    get:
+      description: Tags sollen dafür benutzt werden, dass der Nutzer selbst Zuordnungen
+        machen kann. Z.B. könnte ein Nutzer ein Tag 'Vor dem Essen' machen. Da die
+        Informationen zu einem Tag kurz sind, gibt es keine eigenen Get Tag 'ID' Endpoint
+        sondern dieser wird nur zum Aktualisieren und löschen eines Tags benutzt.
+        <br> Je nachdem wie Lösch-Problematik gelöst wird, wäre evtl. hier eine Filterung
+        nach aktiven und nicht aktiven Tags durch ein Query-Parameter sinnvoll. <br>
+        Die Umsetzung von Tags sollte jedoch erst einmal eine untergeordnete Rolle
+        spielen.
+      operationId: getDiaryTags
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200'
+          description: Repräenstation der Tags des Tagebuches.
+        400:
+          description: Die Anfrage war fehlerhaft.
+        401:
+          description: Eine Anmeldung ist erforderlich.
+        403:
+          description: Der Nutzer hat nicht geügend Rechte, um diese Aktion auszuführen.
+      security:
+      - basicAuth: []
+      summary: Erhalte eine Auflistung der verwendeten Tags eines Tagebuches
+      tags:
+      - Tagebücher-Tags
+      x-openapi-router-controller: TagebcherTagsController
+      x-openapi-router-service: TagebcherTagsService
+    post:
+      description: '...'
+      operationId: addDiaryTag
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_tags'
+          description: Repräenstation des Tags - hier überprüfen, ob es sinnvoll ist
+            ein einzelnen Tag zurückzugeben.
+        400:
+          description: Die Anfrage war fehlerhaft.
+        401:
+          description: Eine Anmeldung ist erforderlich.
+        403:
+          description: Der Nutzer hat nicht geügend Rechte, um diese Aktion auszuführen.
+      security:
+      - basicAuth: []
+      summary: Erstelle ein neues Tag für ein Tagebuch.
+      tags:
+      - Tagebücher-Tags
+      x-openapi-router-controller: TagebcherTagsController
+      x-openapi-router-service: TagebcherTagsService
+  /diaries/{diaryId}/tags/{tagID}:
+    delete:
+      description: Überpüfen, ob überhaupt machbar wegen Lösch-Problematik.
+      operationId: deleteDiaryTag
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: ID des Tags.
+        explode: false
+        in: path
+        name: tagID
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        202:
+          description: Tag wird gelöscht.
+        400:
+          description: Die Anfrage war fehlerhaft.
+        401:
+          description: Eine Anmeldung ist erforderlich.
+        403:
+          description: Der Nutzer hat nicht geügend Rechte, um diese Aktion auszuführen.
+      security:
+      - basicAuth: []
+      summary: Lösche ein Tag
+      tags:
+      - Tagebücher-Tags
+      x-openapi-router-controller: TagebcherTagsController
+      x-openapi-router-service: TagebcherTagsService
+    patch:
+      description: Diese Funktion muss erst einmal nicht umgesetzt werden. Es könnte
+        sowieso nur der Name geändert werden. Die Idee dahinter ist, dass Tags auch
+        später als komplexere Objekte mit z.B. Bild oder Icon bestehen könnten, was
+        aber in der Arbeit nicht umgesetzt werden.
+      operationId: updateDiaryTag
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: ID des Tags.
+        explode: false
+        in: path
+        name: tagID
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_tags'
+          description: Repräenstation des Tags - hier überprüfen, ob es sinnvoll ist
+            ein einzelnen Tag zurückzugeben.
+        400:
+          description: Die Anfrage war fehlerhaft.
+        401:
+          description: Eine Anmeldung ist erforderlich.
+        403:
+          description: Der Nutzer hat nicht geügend Rechte, um diese Aktion auszuführen.
+      security:
+      - basicAuth: []
+      summary: Aktualisiere die Informationen eines Tags eines Tagebuches.
+      tags:
+      - Tagebücher-Tags
+      x-openapi-router-controller: TagebcherTagsController
+      x-openapi-router-service: TagebcherTagsService
+  /diaries/{diaryId}/drugs:
+    get:
+      description: Dieser Punkt hat auch erst einmal geringer Priorität. Es muss geguckt
+        werden, ob es einen eigenen get End-Point für ein Medikament geben muss. Genauso
+        wie bei Tags und Insulinen ergibt sich hier eine Lösch-Problematik.
+      operationId: getDiaryDrugs
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_1'
+          description: Repräenstation der Medikamente des Tagebuches.
+        400:
+          description: Die Anfrage war fehlerhaft.
+        401:
+          description: Eine Anmeldung ist erforderlich.
+        403:
+          description: Der Nutzer hat nicht geügend Rechte, um diese Aktion auszuführen.
+      security:
+      - basicAuth: []
+      summary: Erhalte eine Auflistung der verwendeten Medikamente eines Tagebuches.
+      tags:
+      - diaries
+      x-openapi-router-controller: DiariesController
+      x-openapi-router-service: DiariesService
+    post:
+      description: '...'
+      operationId: addDiaryDrug
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_tags'
+          description: Repräenstation des Tags - hier überprüfen, ob es sinnvoll ist
+            ein einzelnen Tag zurückzugeben.
+        400:
+          description: Request war falsch
+        401:
+          description: Authorisierung erforderlich
+        403:
+          description: Nicht ausreichend Rechte
+      security:
+      - basicAuth: []
+      summary: Erstelle ein neues Medikament
+      tags:
+      - diaries
+      x-openapi-router-controller: DiariesController
+      x-openapi-router-service: DiariesService
+  /diaries/{diaryId}/drugs/{drugId}:
+    delete:
+      description: Überpüfen, ob überhaupt machbar wegen Lösch-Problematik.
+      operationId: deleteDiaryDrug
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: ID des Medikaments
+        explode: false
+        in: path
+        name: drugId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          description: Repräenstation des Eintrages
+        400:
+          description: Request war falsch
+        401:
+          description: Authorisierung erforderlich
+        403:
+          description: Nicht ausreichend Rechte
+      summary: Lösche ein Medikament
+      tags:
+      - diaries
+      x-openapi-router-controller: DiariesController
+      x-openapi-router-service: DiariesService
+    patch:
+      description: Diese Funktion muss erst einmal nicht umgesetzt werden. Es könnte
+        sowieso nur der Name geändert werden.
+      operationId: updateDiaryDrug
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: ID des Medikaments
+        explode: false
+        in: path
+        name: drugId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          description: Repräenstation des Eintrages
+        400:
+          description: Request war falsch
+        401:
+          description: Authorisierung erforderlich
+        403:
+          description: Nicht ausreichend Rechte
+      summary: Aktualisiere die Informationen eines Medikaments
+      tags:
+      - diaries
+      x-openapi-router-controller: DiariesController
+      x-openapi-router-service: DiariesService
+  /diaries/{diaryId}/insulins:
+    get:
+      description: Tags sollen dafür benutzt werden, dass der Nutzer selbst Zuordnungen
+        machen kann. Z.B. könnte ein Nutzer ein Tag 'Vor dem Essen' machen. Da die
+        Informationen zu einem Tag kurz sind, gibt es keine eigenen Get Tag 'ID' Endpoint
+        sondern dieser wird nur zum Aktualisieren und löschen eines Tags benutzt.
+      operationId: getDiaryInsulins
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          description: Repräenstation des Eintrages
+        400:
+          description: Request war falsch
+        401:
+          description: Authorisierung erforderlich
+        403:
+          description: Nicht ausreichend Rechte
+      summary: Erhalte eine Auflistung der verwendeten Insuline eines Tagebuches
+      tags:
+      - diaries
+      x-openapi-router-controller: DiariesController
+      x-openapi-router-service: DiariesService
+    post:
+      description: '...'
+      operationId: addDiaryInsulin
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_tags'
+          description: Repräenstation des Medikaments - hier überprüfen, ob es sinnvoll
+            ist ein einzelnen Tag zurückzugeben.
+        400:
+          description: Die Anfrage war fehlerhaft.
+        401:
+          description: Eine Anmeldung ist erforderlich.
+        403:
+          description: Der Nutzer hat nicht geügend Rechte, um diese Aktion auszuführen.
+      summary: Erstelle ein neues Medikament
+      tags:
+      - diaries
+      x-openapi-router-controller: DiariesController
+      x-openapi-router-service: DiariesService
+  /diaries/{diaryId}/insulins/{insulinId}:
+    delete:
+      description: Überpüfen, ob überhaupt machbar wegen Lösch-Problematik.
+      operationId: deleteDiaryInsulin
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: ID des Insulins
+        explode: false
+        in: path
+        name: insulinId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          description: Repräenstation des Eintrages
+        400:
+          description: Request war falsch
+        401:
+          description: Authorisierung erforderlich
+        403:
+          description: Nicht ausreichend Rechte
+      summary: Lösche ein Insulin
+      tags:
+      - diaries
+      x-openapi-router-controller: DiariesController
+      x-openapi-router-service: DiariesService
+    patch:
+      description: Diese Funktion muss erst einmal nicht umgesetzt werden. Es könnte
+        sowieso nur der Name geändert werden.
+      operationId: updateDiaryInsulin
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: ID des Insulins
+        explode: false
+        in: path
+        name: insulinId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          description: Repräenstation des Eintrages
+        400:
+          description: Request war falsch
+        401:
+          description: Authorisierung erforderlich
+        403:
+          description: Nicht ausreichend Rechte
+      summary: Aktualisiere die Informationen eines Medikaments
+      tags:
+      - diaries
+      x-openapi-router-controller: DiariesController
+      x-openapi-router-service: DiariesService
+  /diaries/{diaryId}/entries:
+    get:
+      description: |-
+        <ul> <li> Allgemeine (einache) Suchparameter, werden in der URL-Quey angegeben. </li> <li> Komplexe Such-Abfragen werden im Body angegeben. Hier müsste man dann gucken, wie das umsetzbar ist (vorallem mit Caches) da Bodies in Get-Anfragen unüblich sind.
+        <ul> <li> Es muss auch überlegt werden, ob eine Filterung nach bestimmten Kriterien überhaupt Serverseitig passieren soll, oder clientseitig. </li> <li> Natürlich unterstützt Swagger keine Bodies in Get anfragen. -> Entweder selbst händisch im Code einfügen, oder in Post und Get aufteilen (Post Filter-Daten, Kriege Such ID zurück, mache Get auf Such-Ressource mit ID. ISt für Cachen aber auch nicht gut). </li> </ul> </li> <li> Es muss noch überprüft werden, ob die Entries in dieser Liste nur ein Subset der Informationen enthalten sollen und alle Informationen eines Eintrages erst mit dem Get-Request zu dem spezifischen Entry einsehbar sind. </li> </ul>
+      operationId: getDiaryEntries
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Zeit in Unix-Zeit (Einschließlich)
+        explode: true
+        in: query
+        name: from
+        required: false
+        schema:
+          type: integer
+        style: form
+      - description: Zeit in Unix-Zeit (Einschließlich)
+        explode: true
+        in: query
+        name: to
+        required: false
+        schema:
+          type: integer
+        style: form
+      - description: Die Anzahl der maximalen Einträge, die zurückgegeben werden sollen.
+          Ist nur mit order gültig.
+        explode: true
+        in: query
+        name: limit
+        required: false
+        schema:
+          type: integer
+        style: form
+      - description: Ob die Einträge beginnend von dem ältesten oder neusten Eintrag
+          sortiert zurückgegeben werden sollen.
+        explode: true
+        in: query
+        name: order
+        required: false
+        schema:
+          enum:
+          - asc
+          - desc
+          type: string
+        style: form
+      - description: Je nachdem, wie das Löschen umgesetzt wird, wäre dieses Parameter
+          evtl. sinnvoll.
+        explode: true
+        in: query
+        name: showDeactivatedEntries
+        required: false
+        schema:
+          type: boolean
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_2'
+          description: ok
+        401:
+          description: Eine Anmeldung ist erforderlich/ Authentifizierungsdaten waren
+            fehlerhaft
+        403:
+          description: Der Nutzer hat nicht geügend Rechte, um diese Aktion auszuführen.
+        400:
+          description: Die Anfrage war fehlerhaft.
+      summary: Erhalte alle Entries. Optional sollten Such-Kriterien oder Filter angegeben
+        werden können.
+      tags:
+      - Einträge
+      x-openapi-router-controller: EintrgeController
+      x-openapi-router-service: EintrgeService
+    post:
+      description: Generell muss nur ein Zeitstempel angegeben werden und die anderen
+        Attribute sind optional. Das bedeutet, dass z.B. bei einer BZ-Messung nur
+        der Zeitstempel und Blutzcker-Wert übergeben werden muss. Der Aufrufer dieser
+        Methode muss selbst darauf achten, dass die richtigen Medikamenten und Insulin-IDs
+        übertragen werden. Falsche IDs führen zu einem Fehler.
+      operationId: addDiaryEntry
+      parameters:
+      - description: Die ID des Tagebuches, bei welchem ein Eintrag hinzugefügt werden
+          soll.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Entry-Repr-Response'
+        description: Eine Repräsentation des zu erstellenden Tagebuch-Eintrages
+      responses:
+        201:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entry-Repr-Response'
+          description: Das Tagebuch wurde erfolgreich aktualisiert.
+          headers:
+            location:
+              description: Die URL des erstellten Eintrages (Ist das sinnvoll, da
+                das ja nur semi-Rest ist.)
+              explode: false
+              schema:
+                type: string
+              style: simple
+        401:
+          description: Eine Anmeldung ist erforderlich/ Authentifizierungsdaten waren
+            fehlerhaft
+        403:
+          description: Der Nutzer hat nicht geügend Rechte, um diese Aktion auszuführen.
+        400:
+          description: Die Anfrage war fehlerhaft.
+      summary: Erstelle einen neuen Eintrag in dem Tagebuch.
+      tags:
+      - Einträge
+      x-openapi-router-controller: EintrgeController
+      x-openapi-router-service: EintrgeService
+  /diaries/{diaryId}/entries/{entryId}:
+    delete:
+      description: Hier muss nochmal überlegt werden, ob und wie Einträge gelöscht
+        werden. Ein anderer Ansatz wäre, dass Einträge ein active Flag haben, dass
+        bei einem Patch gesetzt wird - Das bei einem Delete auszuführen wäre vermutlich
+        laut Rest falsch.
+      operationId: deleteDiaryEntry
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: ID des Eintrages
+        explode: false
+        in: path
+        name: entryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          description: Repräenstation des Eintrages
+        400:
+          description: Request war falsch
+        401:
+          description: Authorisierung erforderlich
+        403:
+          description: Nicht ausreichend Rechte
+      summary: Lösche einen Eintrag
+      tags:
+      - Einträge
+      x-openapi-router-controller: EintrgeController
+      x-openapi-router-service: EintrgeService
+    get:
+      description: 'Hier sollten alle ausführlichen Informationen gezeigt werden,
+        die es zu einem Eintrag gibt. Eventuell wäre es auch sinnvoll aufzuzeigen
+        oder zu verlinken, wer was gemacht hat [Aber erst später]. <br> Evtl. ist
+        dieser Endpoint später auch nur noch nützlich, um für einen Eintrag eine Historie
+        anzuzeigen. '
+      operationId: getDiaryEntry
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: ID des Eintrages
+        explode: false
+        in: path
+        name: entryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Entry-Repr-Response'
+          description: Repräenstation des Eintrages
+        401:
+          description: Eine Anmeldung ist erforderlich/ Authentifizierungsdaten waren
+            fehlerhaft
+        403:
+          description: Der Nutzer hat nicht geügend Rechte, um diese Aktion auszuführen.
+        400:
+          description: Die Anfrage war fehlerhaft.
+      summary: Erhalte eine Detaillierte Repräsentation eines Eintrages.
+      tags:
+      - Einträge
+      x-openapi-router-controller: EintrgeController
+      x-openapi-router-service: EintrgeService
+    patch:
+      description: Hier sollten natürlich nur die Felder angegeben werden, die auch
+        aktualisiert werden sollen.
+      operationId: updateDiaryEntry
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: ID des Eintrages
+        explode: false
+        in: path
+        name: entryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          description: Repräenstation des Eintrages
+        400:
+          description: Request war falsch
+        401:
+          description: Authorisierung erforderlich
+        403:
+          description: Nicht ausreichend Rechte
+      summary: Aktualisiere einen Eintrag.
+      tags:
+      - Einträge
+      x-openapi-router-controller: EintrgeController
+      x-openapi-router-service: EintrgeService
+  /diaries/{diaryId}/contexts:
+    get:
+      description: 'Es werden alle Kontexte für den ausgewählten Zeitraum zurückgegeben.
+        Ist der KOntext für einen Zeitpunkt gewünscht sind End- und Startzeitpunkt
+        gleich einzugeben. <br> Attribute der Kontexte weisen Redundanzen auf, auch
+        wenn es sich um gleiche Attribute handelt. Es ist diese Aufgabe diese Redundanzen
+        ggf. zu behandeln. <br> Falls es für einen Zeitraum keinen Nutzer spezifizierten
+        Kontext gibt, so greigt der Root-Kontext ohne Gültigkeitszeitstempel. '
+      operationId: getDiaryContexts
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Ab welchen Zeitpunkt (Unix Timestamp)
+        explode: true
+        in: query
+        name: from
+        required: true
+        schema:
+          type: integer
+        style: form
+      - description: Bis welchen Zeitpunkt (Unix Timestamp)
+        explode: true
+        in: query
+        name: to
+        required: true
+        schema:
+          type: integer
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_3'
+          description: Repräenstation der Liste von Einträgen
+        400:
+          description: Request war falsch
+        401:
+          description: Authorisierung erforderlich
+        403:
+          description: Nicht ausreichend Rechte
+      summary: Ehralte Kontexte für Zeitraum.
+      tags:
+      - Kontexte
+      x-openapi-router-controller: KontexteController
+      x-openapi-router-service: KontexteService
+    post:
+      description: Es muss nur der Zeitstempel angegeben werden, ab welchem der Kontext
+        gelten soll. Weiterhin sollten dann nur Attribute engegeben werden müssen,
+        die sich geändert haben. Alle weiteren Werte bleiben unverändert und werden
+        somit (sofern vorhanden) aus dem alten Kontext übernommen. Das hängt u.a.
+        damit zusammen wie die Serverseite diese Änderung bearbeitet. Der Server oder
+        DB wird vermutlich nur bei jedem einzelenn Attribut z.B. KE-Faktoren speichern
+        wann es sich geändert hat und nicht ein komplett neuen Kontext speichern,
+        in welchem alle Werte die gleichgeblieben sind wiederholt werden. Auf der
+        Client-Seite wäre so eine Darstellung aber vermutlich nicht angebracht, da
+        ein Nutzer oder Client immer nur diskret sehen möchte wann sich überhaupt
+        etwas geändert hat. Eine Auschlüsselung auf verschiedene Attribute wäre vermutlich
+        zu viel.
+      operationId: addDiaryContext
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: ID des Insulins
+        explode: false
+        in: path
+        name: insulinId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          description: Repräenstation des Eintrages
+        400:
+          description: Request war falsch
+        401:
+          description: Authorisierung erforderlich
+        403:
+          description: Nicht ausreichend Rechte
+      summary: Erstelle einen neuen Kontext.
+      tags:
+      - diaries
+      x-openapi-router-controller: DiariesController
+      x-openapi-router-service: DiariesService
+  /self:
+    get:
+      description: Erhalte Basisfnformationen und Präferenzen eines Nutzer anhand
+        dessen Id-Tokens
+      operationId: getSelf
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User-Info'
+          description: successful operation
+        400:
+          description: Es wurde kein gültiges SearchSnippet angegeben
+        401:
+          description: Der Nutzer ist nicht angemeldet.
+      security:
+      - bearerAuth: []
+      summary: Erhalte Basisfnformationen und Präferenzen eines Nutzer anhand dessen
+        Id-Tokens
+      tags:
+      - user-management
+      x-openapi-router-controller: UserManagementController
+      x-openapi-router-service: UserManagementService
+  /users:
+    get:
+      description: Dieser Endpunkt soll genutzt werden, um Nutzer zu suchen, um diesen
+        Freigaben zu geben. Dmentsprechend muss imeer ein Searchsnippet mitgelifert
+        werden, um die Auswahl einzuschränken
+      operationId: getUsers
+      parameters:
+      - description: Es werden alle User mit den Namen ausgegeben, die diese Snippet
+          enthalten.
+        explode: true
+        in: query
+        name: searchSnipptet
+        required: true
+        schema:
+          minimum: 2
+          type: string
+        style: form
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_4'
+          description: successful operation
+        400:
+          description: Es wurde kein gültiges SearchSnippet angegeben
+        401:
+          description: Der Nutzer ist nicht angemeldet. Nur angemeldete Nutzer können
+            Informationen über andere Nutzer erfahren.
+      summary: Erhalte Basisfnformationen über Nutzer.
+      tags:
+      - user-management
+      x-openapi-router-controller: UserManagementController
+      x-openapi-router-service: UserManagementService
+    post:
+      description: 'Der Nutzer wird erstellt. Daraufhin, kann der Nutzer sich mit
+        den angegebenen Nutzernamen und Passwort registrieren. <br> Bei der Registrierung
+        wird ein ID-Token sowie der gewünschte Nutzername übergeben. '
+      operationId: registerUser
+      requestBody:
+        $ref: '#/components/requestBodies/inline_object_1'
+        content:
+          application/json:
+            schema:
+              properties:
+                username:
+                  type: string
+                idToken:
+                  type: string
+              type: object
+        description: Eine Repräsentation des zu erstellenden Nutzers
+      responses:
+        201:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User-Info'
+          description: successful operation
+        400:
+          description: Der Nutzer konnte nicht erstellt werden. Entweder waren Nutzername
+            und/oder Passwort ungeültig oder es gibt schon einen Nutzer mit dem Nutzernamen.
+      summary: Registirere einen neuen Nutzer
+      tags:
+      - user-management
+      x-openapi-router-controller: UserManagementController
+      x-openapi-router-service: UserManagementService
+  /user/diaries:
+    get:
+      operationId: getUserDiaries
+      parameters:
+      - description: 'TODO: spezifiziere den Filter genauer'
+        explode: true
+        in: query
+        name: searchSnipptet
+        required: true
+        schema:
+          type: string
+        style: form
+      responses:
+        200:
+          description: successful operation
+      summary: Get the diaries of the current user (from which the current user is
+        the owner)
+      tags:
+      - user-management
+      x-openapi-router-controller: UserManagementController
+      x-openapi-router-service: UserManagementService
+  /users/grants:
+    get:
+      description: Der gegebenen Zugriffsrechte sollten in einer Listen-artigen Struktur
+        zurückgegeben werden.
+      operationId: getGrantsForUser
+      responses:
+        200:
+          description: successful operation
+      summary: Get the grants for diaries that were given to the user
+      tags:
+      - grant-management
+      x-openapi-router-controller: GrantManagementController
+      x-openapi-router-service: GrantManagementService
+  /diaries/{diaryId}/grants:
+    get:
+      description: Diese Informationen sollten nur abrufbar sein, wenn der momentan
+        Nutzer auch besitzer des Tagebuches ist
+      operationId: getGrantsFromDiary
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          description: successful operation
+      summary: Get the grants that are associated with the given diary
+      tags:
+      - grant-management
+      x-openapi-router-controller: GrantManagementController
+      x-openapi-router-service: GrantManagementService
+    post:
+      description: Diese Informationen sollten nur abrufbar sein, wenn der momentan
+        Nutzer auch besitzer des Tagebuches ist
+      operationId: grantAccessToUser
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          description: successful operation
+      summary: Give someone access to a diary
+      tags:
+      - grant-management
+      x-openapi-router-controller: GrantManagementController
+      x-openapi-router-service: GrantManagementService
+  /diaries/{diaryId}/grants/{grantId}:
+    delete:
+      description: Diese Informationen sollten nur abrufbar sein, wenn der momentan
+        Nutzer auch besitzer des Tagebuches ist
+      operationId: revokeAccess
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: ID of the grant
+        explode: false
+        in: path
+        name: grantId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          description: successful operation
+      summary: Revoke access
+      tags:
+      - grant-management
+      x-openapi-router-controller: GrantManagementController
+      x-openapi-router-service: GrantManagementService
+    patch:
+      description: Diese Informationen sollten nur abrufbar sein, wenn der momentan
+        Nutzer auch besitzer des Tagebuches ist
+      operationId: updateAccess
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: ID of the grant
+        explode: false
+        in: path
+        name: grantId
+        required: true
+        schema:
+          type: string
+        style: simple
+      responses:
+        200:
+          description: successful operation
+      summary: Update access
+      tags:
+      - grant-management
+      x-openapi-router-controller: GrantManagementController
+      x-openapi-router-service: GrantManagementService
+  /util/bolusCalculator/bolusRecommendation:
+    post:
+      description: 'Dieser End-Point muss eigentlich mit einen GET-Verb arbeiten,
+        jedoch wird aus Realisierungsgründen wie z.B. Swagger ein overloaded Post
+        verwendet. <br> '
+      operationId: getBolusCalculatorBolusRecommendation
+      parameters:
+      - description: Die Id des Tagebuches
+        explode: true
+        in: query
+        name: diary
+        required: true
+        schema:
+          type: string
+        style: form
+      - description: (Optional) Für welchen Zeitpunkt soll der Vorschlag sein. Als
+          Default Wert wird der jetzige Zeitpunkt genommen.
+        explode: true
+        in: query
+        name: for
+        required: false
+        schema:
+          type: integer
+        style: form
+      responses:
+        200:
+          description: Repräenstation des Eintrages
+        400:
+          description: Request war falsch
+        401:
+          description: Authorisierung erforderlich
+        403:
+          description: Nicht ausreichend Rechte
+      summary: Bekomme einen Bolus-Vorschlag
+      tags:
+      - util
+      x-openapi-router-controller: UtilController
+      x-openapi-router-service: UtilService
+components:
+  requestBodies:
+    inline_object_1:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/inline_object_1'
+    inline_object:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/inline_object'
+  schemas:
+    Diary:
+      example:
+        insulins:
+        - insulinType: fast
+          name: name
+          description: description
+        - insulinType: fast
+          name: name
+          description: description
+        drugs:
+        - name: name
+          description: description
+        - name: name
+          description: description
+        patient: patient
+        name: name
+        tags:
+        - tags
+        - tags
+      properties:
+        name:
+          type: string
+        patient:
+          type: string
+        drugs:
+          items:
+            $ref: '#/components/schemas/Diary_drugs'
+          type: array
+        insulins:
+          items:
+            $ref: '#/components/schemas/Diary_insulins'
+          type: array
+        tags:
+          items:
+            type: string
+          type: array
+      required:
+      - name
+      - patient
+      title: A diary representation
+      type: object
+    Entry-Filter-Obj:
+      properties:
+        distance:
+          description: Angelehnt an Vektorraum-Model, wie strikt gearbeitet wird.
+          type: integer
+        filterProperties:
+          $ref: '#/components/schemas/EntryFilterObj_filterProperties'
+      title: Die Filterungsspezifikationen.
+      type: object
+    foodDescr:
+      example:
+        carbsFactor: 0.8008281904610115
+        resorption: fast
+        comment: comment
+        id: id
+      properties:
+        id:
+          type: string
+        resorption:
+          enum:
+          - fast
+          - medium
+          - slow
+          type: string
+        carbsFactor:
+          type: number
+        comment:
+          type: string
+      title: Eine Darstellung einer Nahrung
+      type: object
+    foodIntake:
+      example:
+        amount: amount
+        food: ""
+      properties:
+        amount:
+          description: in KH nicht in KE!
+          type: string
+        food:
+          oneOf:
+          - $ref: '#/components/schemas/foodDescr'
+          - $ref: '#/components/schemas/idRef'
+      title: Nahrungsaufnahme
+      type: object
+    idRef:
+      type: string
+    Entry-Repr:
+      properties:
+        timeStamp:
+          description: Unix-Zeit
+          type: integer
+        bloodSugar:
+          description: Blutzucker in mmol/l
+          type: number
+        mealBolus:
+          $ref: '#/components/schemas/EntryRepr_mealBolus'
+        correctionBolus:
+          $ref: '#/components/schemas/EntryRepr_mealBolus'
+        basal:
+          $ref: '#/components/schemas/EntryRepr_mealBolus'
+        mealUnits:
+          description: Eingenommene KH in Austauscheinheiten
+          type: number
+        mealDescription:
+          type: string
+        comment:
+          type: string
+        tempBasalChange:
+          $ref: '#/components/schemas/EntryRepr_tempBasalChange'
+        medication:
+          $ref: '#/components/schemas/EntryRepr_medication'
+        acitvity:
+          $ref: '#/components/schemas/EntryRepr_acitvity'
+        tags:
+          description: Die IDs der Tags
+          items:
+            type: string
+          type: array
+      required:
+      - timeStamp
+      title: Die Tagebuch-Repräsentation, die beim Erstellen übergeben werden muss.
+      type: object
+    User-Info:
+      example:
+        preferences:
+          defaultDiary: defaultDiary
+        name: name
+        id: id
+      properties:
+        name:
+          description: name of the user
+          type: string
+        id:
+          description: Die Nutzer-Id
+          type: string
+        preferences:
+          $ref: '#/components/schemas/UserInfo_preferences'
+      title: Informationen über einen Nutzer
+      type: object
+    Context:
+      example:
+        id: id
+        CorrectionsFactors:
+          dailyCorrectionFactors:
+          - 7.061401241503109
+          - 7.061401241503109
+          id: id
+        frameValues:
+          hyperglycemiaLimit: 1.4658129805029452
+          hypoglycemiaLimit: 5.962133916683182
+          dailyBSGoalValues:
+          - 5.637376656633329
+          - 5.637376656633329
+          id: id
+          lowerBSLimit: 0.8008281904610115
+          higherBSLimit: 6.027456183070403
+        keFactors:
+          dailyKEFactors:
+          - 2.3021358869347655
+          - 2.3021358869347655
+          id: id
+      properties:
+        id:
+          type: string
+        frameValues:
+          $ref: '#/components/schemas/FrameValueAttribute'
+        keFactors:
+          $ref: '#/components/schemas/KEFactors'
+        CorrectionsFactors:
+          $ref: '#/components/schemas/CorrectionsFactors'
+      title: Ein Kontext eines Tagebuches
+      type: object
+    CorrectionsFactors:
+      example:
+        dailyCorrectionFactors:
+        - 7.061401241503109
+        - 7.061401241503109
+        id: id
+      properties:
+        id:
+          type: string
+        dailyCorrectionFactors:
+          description: Es liegt am Client herauszufinden, ob der Nutzer einen statischen
+            Wert hat, wenn z.B. alle Werte glei sind
+          items:
+            type: number
+          type: array
+      title: Die Korrektur-Fakotren in einem Kontext
+      type: object
+    KEFactors:
+      example:
+        dailyKEFactors:
+        - 2.3021358869347655
+        - 2.3021358869347655
+        id: id
+      properties:
+        id:
+          type: string
+        dailyKEFactors:
+          description: Es liegt am Client herauszufinden, ob der Nutzer einen statischen
+            Wert hat, wenn z.B. alle Werte glei sind
+          items:
+            type: number
+          type: array
+      title: Die KE-Fakotren in einem Kontext
+      type: object
+    FrameValueAttribute:
+      example:
+        hyperglycemiaLimit: 1.4658129805029452
+        hypoglycemiaLimit: 5.962133916683182
+        dailyBSGoalValues:
+        - 5.637376656633329
+        - 5.637376656633329
+        id: id
+        lowerBSLimit: 0.8008281904610115
+        higherBSLimit: 6.027456183070403
+      properties:
+        id:
+          type: string
+        lowerBSLimit:
+          type: number
+        higherBSLimit:
+          type: number
+        hyperglycemiaLimit:
+          type: number
+        hypoglycemiaLimit:
+          type: number
+        dailyBSGoalValues:
+          description: Es liegt am Client herauszufinden, ob der Nutzer einen statischen
+            Wert hat, wenn z.B. alle Werte glei sind
+          items:
+            type: number
+          type: array
+      title: Die Rahmenwerte in einem Kontext
+      type: object
+    timeStampInsulinIntake:
+      properties:
+        semanticIdentefier:
+          type: string
+        amount:
+          type: number
+      title: Zeitpunkt-Abagabe
+      type: object
+    intervallInsulinIntake:
+      properties:
+        semanticIdentefier:
+          type: string
+        amount:
+          type: number
+        endTimeStamp:
+          type: number
+        canceledTimestamp:
+          type: number
+      title: Zeitraum-Abagabe
+      type: object
+    Entry-Repr-Response:
+      example:
+        timeStamp: 0
+        bloodSugar: 6.027456183070403
+        acitvity:
+          duration: duration
+          strain: 5
+          description: description
+        comment: comment
+        medication:
+          medicationName: medicationName
+          medicationID: medicationID
+          intakeDescription: intakeDescription
+        id: id
+        foodIntakes:
+        - amount: amount
+          food: ""
+        - amount: amount
+          food: ""
+        tempBasalChange:
+          duration: 1
+          percentage: 5.962133916683182
+        insulinIntakes:
+        - ""
+        - ""
+        tags:
+        - tagID: tagID
+          tagName: tagName
+        - tagID: tagID
+          tagName: tagName
+      properties:
+        id:
+          description: Die ID des Eintrages
+          type: string
+        timeStamp:
+          description: Unix-Zeit
+          type: integer
+        bloodSugar:
+          description: Blutzucker in mmol/l
+          type: number
+        insulinIntakes:
+          items:
+            oneOf:
+            - $ref: '#/components/schemas/timeStampInsulinIntake'
+            - $ref: '#/components/schemas/intervallInsulinIntake'
+          type: array
+        foodIntakes:
+          items:
+            $ref: '#/components/schemas/foodIntake'
+          type: array
+        comment:
+          type: string
+        tempBasalChange:
+          $ref: '#/components/schemas/EntryRepr_tempBasalChange'
+        medication:
+          $ref: '#/components/schemas/EntryReprResponse_medication'
+        acitvity:
+          $ref: '#/components/schemas/EntryRepr_acitvity'
+        tags:
+          description: Die IDs der Tags
+          items:
+            $ref: '#/components/schemas/EntryReprResponse_tags'
+          type: array
+      required:
+      - timeStamp
+      title: Eine vollständige Eintrags-Repräsentation
+      type: object
+    full-diary:
+      example:
+        owner:
+          name: name
+          id: id
+        insulins:
+        - name: name
+          active: true
+          id: id
+        - name: name
+          active: true
+          id: id
+        drugs:
+        - name: name
+          active: true
+          id: id
+        - name: name
+          active: true
+          id: id
+        id: id
+        food:
+        - carbsFactor: 0.8008281904610115
+          resorption: fast
+          comment: comment
+          id: id
+        - carbsFactor: 0.8008281904610115
+          resorption: fast
+          comment: comment
+          id: id
+        tags:
+        - name: name
+          active: true
+          id: id
+        - name: name
+          active: true
+          id: id
+      properties:
+        id:
+          type: string
+        owner:
+          $ref: '#/components/schemas/fulldiary_owner'
+        food:
+          items:
+            $ref: '#/components/schemas/foodDescr'
+          type: array
+        drugs:
+          items:
+            $ref: '#/components/schemas/fulldiary_drugs'
+          type: array
+        insulins:
+          items:
+            $ref: '#/components/schemas/fulldiary_drugs'
+          type: array
+        tags:
+          items:
+            $ref: '#/components/schemas/fulldiary_drugs'
+          type: array
+      type: object
+    inline_object:
+      properties:
+        patient:
+          type: string
+        name:
+          type: string
+      type: object
+    inline_response_200_tags:
+      example:
+        name: name
+        active: true
+        id: id
+      properties:
+        name:
+          type: string
+        id:
+          type: string
+        active:
+          type: boolean
+    inline_response_200:
+      example:
+        tags:
+        - name: name
+          active: true
+          id: id
+        - name: name
+          active: true
+          id: id
+      properties:
+        tags:
+          items:
+            $ref: '#/components/schemas/inline_response_200_tags'
+          type: array
+      required:
+      - tags
+    inline_response_200_1:
+      example:
+        drugs:
+        - name: name
+          active: true
+          id: id
+        - name: name
+          active: true
+          id: id
+      properties:
+        drugs:
+          items:
+            $ref: '#/components/schemas/inline_response_200_tags'
+          type: array
+      required:
+      - drugs
+    inline_response_200_2:
+      example:
+        entries:
+        - timeStamp: 0
+          bloodSugar: 6.027456183070403
+          acitvity:
+            duration: duration
+            strain: 5
+            description: description
+          comment: comment
+          medication:
+            medicationName: medicationName
+            medicationID: medicationID
+            intakeDescription: intakeDescription
+          id: id
+          foodIntakes:
+          - amount: amount
+            food: ""
+          - amount: amount
+            food: ""
+          tempBasalChange:
+            duration: 1
+            percentage: 5.962133916683182
+          insulinIntakes:
+          - ""
+          - ""
+          tags:
+          - tagID: tagID
+            tagName: tagName
+          - tagID: tagID
+            tagName: tagName
+        - timeStamp: 0
+          bloodSugar: 6.027456183070403
+          acitvity:
+            duration: duration
+            strain: 5
+            description: description
+          comment: comment
+          medication:
+            medicationName: medicationName
+            medicationID: medicationID
+            intakeDescription: intakeDescription
+          id: id
+          foodIntakes:
+          - amount: amount
+            food: ""
+          - amount: amount
+            food: ""
+          tempBasalChange:
+            duration: 1
+            percentage: 5.962133916683182
+          insulinIntakes:
+          - ""
+          - ""
+          tags:
+          - tagID: tagID
+            tagName: tagName
+          - tagID: tagID
+            tagName: tagName
+      properties:
+        entries:
+          items:
+            $ref: '#/components/schemas/Entry-Repr-Response'
+          type: array
+    inline_response_200_3:
+      example:
+        contexts:
+        - id: id
+          CorrectionsFactors:
+            dailyCorrectionFactors:
+            - 7.061401241503109
+            - 7.061401241503109
+            id: id
+          frameValues:
+            hyperglycemiaLimit: 1.4658129805029452
+            hypoglycemiaLimit: 5.962133916683182
+            dailyBSGoalValues:
+            - 5.637376656633329
+            - 5.637376656633329
+            id: id
+            lowerBSLimit: 0.8008281904610115
+            higherBSLimit: 6.027456183070403
+          keFactors:
+            dailyKEFactors:
+            - 2.3021358869347655
+            - 2.3021358869347655
+            id: id
+        - id: id
+          CorrectionsFactors:
+            dailyCorrectionFactors:
+            - 7.061401241503109
+            - 7.061401241503109
+            id: id
+          frameValues:
+            hyperglycemiaLimit: 1.4658129805029452
+            hypoglycemiaLimit: 5.962133916683182
+            dailyBSGoalValues:
+            - 5.637376656633329
+            - 5.637376656633329
+            id: id
+            lowerBSLimit: 0.8008281904610115
+            higherBSLimit: 6.027456183070403
+          keFactors:
+            dailyKEFactors:
+            - 2.3021358869347655
+            - 2.3021358869347655
+            id: id
+      properties:
+        contexts:
+          items:
+            $ref: '#/components/schemas/Context'
+          type: array
+    inline_response_200_4_users:
+      example:
+        userName: userName
+        userID: userID
+      properties:
+        userID:
+          type: string
+        userName:
+          type: string
+    inline_response_200_4:
+      example:
+        users:
+        - userName: userName
+          userID: userID
+        - userName: userName
+          userID: userID
+      properties:
+        users:
+          items:
+            $ref: '#/components/schemas/inline_response_200_4_users'
+          type: array
+    inline_object_1:
+      properties:
+        username:
+          type: string
+        idToken:
+          type: string
+      type: object
+    Diary_drugs:
+      example:
+        name: name
+        description: description
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+    Diary_insulins:
+      example:
+        insulinType: fast
+        name: name
+        description: description
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        insulinType:
+          enum:
+          - fast
+          - normal
+          - slow
+          type: string
+    EntryFilterObj_filterProperties:
+      properties:
+        bloodsuger:
+          type: integer
+        meal-bolus:
+          type: integer
+        time:
+          description: Nur die Tageszeit ist hier relevant
+          type: integer
+    EntryRepr_mealBolus:
+      properties:
+        units:
+          description: Abgabe in IE
+          type: number
+        insulin:
+          description: Die ID des Insulins
+          type: string
+    EntryRepr_tempBasalChange:
+      example:
+        duration: 1
+        percentage: 5.962133916683182
+      properties:
+        duration:
+          description: Die Zeit in der die Basalrate der Pumpe geändert werden soll
+            in Sekunden
+          type: integer
+        percentage:
+          description: Die Prozent, um wie viel die Rate geändert werden soll.
+          type: number
+    EntryRepr_medication:
+      properties:
+        medicationID:
+          description: Die ID des Medikaments
+          type: string
+        intakeDescription:
+          description: Kleiner Text, in welchem Details zur Einnahme notiert werden
+            können.
+          type: string
+    EntryRepr_acitvity:
+      example:
+        duration: duration
+        strain: 5
+        description: description
+      properties:
+        duration:
+          type: string
+        description:
+          type: string
+        strain:
+          enum:
+          - -2
+          - -1
+          - 0
+          - 1
+          - 2
+          type: integer
+    UserInfo_preferences:
+      example:
+        defaultDiary: defaultDiary
+      properties:
+        defaultDiary:
+          description: Das Tagebuch, dass der Nutzer standarmäßig ausgewählt haben
+            möchte
+          type: string
+    EntryReprResponse_medication:
+      example:
+        medicationName: medicationName
+        medicationID: medicationID
+        intakeDescription: intakeDescription
+      properties:
+        medicationID:
+          description: Die ID des Medikaments
+          type: string
+        intakeDescription:
+          description: Kleiner Text, in welchem Details zur Einnahme notiert werden
+            können.
+          type: string
+        medicationName:
+          description: Der Name des Medikaments
+          type: string
+    EntryReprResponse_tags:
+      example:
+        tagID: tagID
+        tagName: tagName
+      properties:
+        tagID:
+          type: string
+        tagName:
+          type: string
+    fulldiary_owner:
+      example:
+        name: name
+        id: id
+      properties:
+        name:
+          type: string
+        id:
+          type: string
+    fulldiary_drugs:
+      example:
+        name: name
+        active: true
+        id: id
+      properties:
+        name:
+          type: string
+        id:
+          type: string
+        active:
+          description: Noch nicht ganz klar, ob diese Werte gelöscht werden dürfen,
+            da Einträge ja mit ID darauf verweisen. Entweder werden Id-Referenzen
+            dann auf null gesetzt, oder dieser Wert als inaktiv makiert.
+          type: boolean
+  securitySchemes:
+    basicAuth:
+      scheme: basic
+      type: http
+    bearerAuth:
+      bearerFormat: JWT
+      scheme: bearer
+      type: http
