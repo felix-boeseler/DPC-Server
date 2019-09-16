@@ -16,9 +16,9 @@ class EintrgeService {
       async (resolve) => {
         try {
           params.body.id = Math.floor(Math.random() * 10000);
-          if(params.body.foodIntakes){
+          if (params.body.foodIntakes) {
             params.body.foodIntakes.filter(x => x.food).filter(x => typeof x.food == "string").forEach(element => {
-              element.food = {id: Math.floor(Math.random() * 10000), name: "pizza", resorption: "fast", carbsfactor: 0.5, comment: "food"};
+              element.food = global.food.find(x => x.id == element.food);
             });
           }
           global.entries.push(params.body);
