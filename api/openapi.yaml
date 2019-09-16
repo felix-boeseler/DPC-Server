@@ -1334,6 +1334,8 @@ components:
           type: number
         comment:
           type: string
+        name:
+          type: string
       title: Eine Darstellung einer Nahrung
       type: object
     foodIntake:
@@ -1343,7 +1345,7 @@ components:
       properties:
         amount:
           description: in KH nicht in KE!
-          type: string
+          type: number
         food:
           oneOf:
           - $ref: '#/components/schemas/foodDescr'
@@ -1563,7 +1565,7 @@ components:
           type: number
         insulinIntakes:
           items:
-            oneOf:
+            anyOf:
             - $ref: '#/components/schemas/timeStampInsulinIntake'
             - $ref: '#/components/schemas/intervallInsulinIntake'
           type: array

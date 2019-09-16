@@ -15,9 +15,14 @@ class EintrgeService {
     return new Promise(
       async (resolve) => {
         try {
-           params.body.id = Math.floor(Math.random() * 10000);
+          params.body.id = Math.floor(Math.random() * 10000);
+          if(params.body.foodIntakes){
+            params.body.foodIntakes.filter(x => x.food).filter(x => typeof x.food == "string").forEach(element => {
+              element.food = {id: Math.floor(Math.random() * 10000), name: "pizza", resorption: "fast", carbsfactor: 0.5, comment: "food"};
+            });
+          }
           global.entries.push(params.body);
-          resolve(Service.successResponse(JSON.stringify(params.body.id)));
+          resolve(Service.successResponse(JSON.stringify(params.body)));
         } catch (e) {
           resolve(Service.rejectResponse(
             e.message || 'Invalid input',

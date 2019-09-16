@@ -27,4 +27,4 @@ const launchServer = async () => {
 
 launchServer().catch(e => logger.error(e));
 
-global.entries = [{id: "1212", timeStamp: 12321, bloodSugar: 20, insulinIntakes: [{semanticIdentefier: "mealBolus", amout: 2}], foodIntake: []}];
+global.entries = [{ id: "1212", timeStamp: 12321, bloodSugar: 20, insulinIntakes: [{ semanticIdentefier: "mealBolus", amout: 2 }], foodIntake: [], insulinIntakes: [{ semanticIdentefier: "mealBolus", amount: 3 }] }];
