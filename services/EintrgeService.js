@@ -11,11 +11,13 @@ class EintrgeService {
    * entryReprResponse EntryReprResponse Eine Repräsentation des zu erstellenden Tagebuch-Eintrages (optional)
    * returns Entry-Repr-Response
    **/
-  static addDiaryEntry({ diaryId, entryReprResponse }) {
+  static addDiaryEntry(params) {
     return new Promise(
       async (resolve) => {
         try {
-          resolve(Service.successResponse(''));
+           params.body.id = Math.floor(Math.random() * 10000);
+          global.entries.push(params.body);
+          resolve(Service.successResponse(JSON.stringify(params.body.id)));
         } catch (e) {
           resolve(Service.rejectResponse(
             e.message || 'Invalid input',
@@ -65,7 +67,7 @@ class EintrgeService {
     return new Promise(
       async (resolve) => {
         try {
-          resolve(Service.successResponse(JSON.stringify({ entries: global.entries})));
+          resolve(Service.successResponse(JSON.stringify({ entries: global.entries })));
         } catch (e) {
           resolve(Service.rejectResponse(
             e.message || 'Invalid input',
