@@ -13,7 +13,7 @@ class UserManagementService {
     return new Promise(
       async (resolve) => {
         try {
-          resolve(Service.successResponse(''));
+          resolve(Service.successResponse(JSON.stringify( {name: "kekus", id:"kekus",preferences:{defaultDiary:"ked:diary"}})));
         } catch (e) {
           resolve(Service.rejectResponse(
             e.message || 'Invalid input',
