@@ -56,6 +56,7 @@ class Controller {
         requestParams[param.name] = request.query[param.name];
       }
     });
+    requestParams.auth = request.headers.authorization;
     return requestParams;
   }
 

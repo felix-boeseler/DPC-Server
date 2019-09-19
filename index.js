@@ -1,6 +1,8 @@
 const config = require('./config');
 const logger = require('./logger');
 const ExpressServer = require('./expressServer');
+var jwt = require('jsonwebtoken');
+global.jwt = jwt;
 // const App = require('./app');
 
 // const app = new App(config);
@@ -41,3 +43,5 @@ global.food = [{ id: "asdasds", name: "Pizza", resorption: "medium", carbsFactor
 { id: "asdasds10", name: "Pumpernickel", resorption: "medium", carbsFactor: 0.5, comment: "asdad" },
 { id: "asdasds11", name: "Frühstücks-Brot", resorption: "medium", carbsFactor: 0.5, comment: "asdad" }
 ];
+
+global.users = new Map;
