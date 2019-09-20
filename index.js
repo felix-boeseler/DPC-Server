@@ -1,8 +1,8 @@
 const config = require('./config');
 const logger = require('./logger');
 const ExpressServer = require('./expressServer');
-var jwt = require('jsonwebtoken');
-global.jwt = jwt;
+var jwt2 = require('jsonwebtoken');
+global.jwt = jwt2;
 // const App = require('./app');
 
 // const app = new App(config);
@@ -45,3 +45,46 @@ global.food = [{ id: "asdasds", name: "Pizza", resorption: "medium", carbsFactor
 ];
 
 global.users = new Map;
+
+const express = require("express");
+const jwt = require("express-jwt");
+const jwksRsa = require("jwks-rsa");
+
+// Create a new Express app
+const app = express();
+
+// Set up Auth0 configuration
+const authConfig = {
+  domain: "dev-9nr7-5qr.eu.auth0.com",
+  audience: "kekorino"
+};
+
+
+var client = jwksRsa({
+  jwksUri: `https://${authConfig.domain}/.well-known/jwks.json`
+});
+
+
+function getKey(header, callback) {
+  client.getSigningKey(header.kid, function (err, key) {
+    var signingKey = key.publicKey || key.rsaPublicKey;
+    callback(null, signingKey);
+  });
+}
+
+global.validate = (token) => {
+  return new Promise((resolve, reject) => {
+    jwt2.verify(token, getKey, (err, decoded) => {
+      if(err){
+        let error = new Error();
+        error.status = 401;
+        error.message ="Unauthorized";
+        reject(error);
+      } else {
+        resolve(decoded);
+      }
+    })
+  });
+};
+
+

@@ -68,10 +68,11 @@ class EintrgeService {
    * showDeactivatedEntries Boolean Je nachdem, wie das Löschen umgesetzt wird, wäre dieses Parameter evtl. sinnvoll. (optional)
    * returns inline_response_200_2
    **/
-  static getDiaryEntries({ diaryId, from, to, limit, order, showDeactivatedEntries }) {
+  static getDiaryEntries(params) {
     return new Promise(
       async (resolve) => {
         try {
+          await global.validate(params.auth.split(" ")[1]);
           resolve(Service.successResponse(JSON.stringify({ entries: global.entries })));
         } catch (e) {
           resolve(Service.rejectResponse(

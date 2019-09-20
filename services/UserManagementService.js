@@ -14,6 +14,7 @@ class UserManagementService {
       async (resolve) => {
         try {
           let decoded = jwt.decode(params.auth.split(" ")[1]);
+          await global.validate(params.auth.split(" ")[1]);
           let user = global.users.get(decoded.sub);
           if (!user) {
             user = {};
