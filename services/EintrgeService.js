@@ -72,7 +72,7 @@ class EintrgeService {
     return new Promise(
       async (resolve) => {
         try {
-          await global.validate(params.auth.split(" ")[1]);
+          //await global.validate(params.auth.split(" ")[1]);
           resolve(Service.successResponse(JSON.stringify({ entries: global.entries })));
         } catch (e) {
           resolve(Service.rejectResponse(
