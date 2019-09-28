@@ -31,7 +31,7 @@ launchServer().catch(e => logger.error(e));
 
 // { id: "1212", timeStamp: 12321, bloodSugar: 20, insulinIntakes: [{ semanticIdentefier: "mealBolus", amout: 2 }], foodIntake: [], insulinIntakes: [{ semanticIdentefier: "mealBolus", amount: 3 }] }
 global.entries = [];
-global.food = [{ id: "asdasds", name: "Pizza", resorption: "medium", carbsFactor: 0.5, comment: "asdad" },
+global.food = [{ id: "asdasds", name: "Pizza", resorption: "medium", carbsFactor: 0.33, comment: "Pizzatime" },
 { id: "asdasds2", name: "Pasta", resorption: "medium", carbsFactor: 0.5, comment: "asdad" },
 { id: "asdasds3", name: "Nüsse", resorption: "medium", carbsFactor: 0.5, comment: "asdad" },
 { id: "asdasds4", name: "Pasta mit soße", resorption: "medium", carbsFactor: 0.5, comment: "asdad" },
