@@ -6,9 +6,6 @@ info:
 externalDocs:
   description: Find out more about Swagger
   url: http://swagger.io
-servers:
-- description: Sandbox server (uses test data)
-  url: https://dia-pc.flexus.click/v1
 tags:
 - description: Basis-Daten über synchronisierte Tagebücher.
   name: diaries

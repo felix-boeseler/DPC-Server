@@ -171,7 +171,7 @@ class DiariesService {
     return new Promise(
       async (resolve) => {
         try {
-          resolve(Service.successResponse(''));
+          resolve(Service.successResponse(JSON.stringify({ id: "kek", food: global.food })));
         } catch (e) {
           resolve(Service.rejectResponse(
             e.message || 'Invalid input',
