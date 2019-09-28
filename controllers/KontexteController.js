@@ -9,6 +9,10 @@ class KontexteController {
     await Controller.handleRequest(request, response, this.service.getDiaryContexts);
   }
 
+  async updateContext(request, response) {
+    await Controller.handleRequest(request, response, this.service.updateContext);
+  }
+
 }
 
 module.exports = KontexteController;

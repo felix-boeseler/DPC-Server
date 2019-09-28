@@ -27,6 +27,30 @@ class KontexteService {
     );
   }
 
+  /**
+   * Aktualisiere einen Kontext
+   * Falls kein expliziter Zeitpunkt angegeben wird, ist der aktualisierte Kontext ab jetzt gültig. <br> Es werden nur Attribute angegeben, die geändert werden sollen. Bei nicht erwähnten Attributen werden die Werte des Vorgängerkontexts übernommen. Das bedeutet auch, dass bei einer Löschung von Attributen, explizit ein null Wert gesetzt werde muss!
+   *
+   * diaryId String Die Id des Tagebuches.
+   * contextUpdateRequest ContextUpdateRequest Eine Repräsentation der Kontextaktualisierung
+   * from Integer Ab welchen Zeitpunkt soll der Kontext gültig sein (Unix Timestamp) (optional)
+   * returns ContextUpdateAnswer
+   **/
+  static updateContext({ diaryId, contextUpdateRequest, from }) {
+    return new Promise(
+      async (resolve) => {
+        try {
+          resolve(Service.successResponse(''));
+        } catch (e) {
+          resolve(Service.rejectResponse(
+            e.message || 'Invalid input',
+            e.status || 405,
+          ));
+        }
+      },
+    );
+  }
+
 }
 
 module.exports = KontexteService;

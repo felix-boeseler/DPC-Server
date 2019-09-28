@@ -33,10 +33,9 @@ class UserManagementService {
   /**
    * Get the diaries of the current user (from which the current user is the owner)
    *
-   * searchSnipptet String TODO: spezifiziere den Filter genauer
-   * no response value expected for this operation
+   * returns inline_response_200_5
    **/
-  static getUserDiaries({ searchSnipptet }) {
+  static getUserDiaries() {
     return new Promise(
       async (resolve) => {
         try {
@@ -77,7 +76,7 @@ class UserManagementService {
    * Registirere einen neuen Nutzer
    * Der Nutzer wird erstellt. Daraufhin, kann der Nutzer sich mit den angegebenen Nutzernamen und Passwort registrieren. <br> Bei der Registrierung wird ein ID-Token sowie der gewünschte Nutzername übergeben. 
    *
-   * inlineObject1 InlineObject1  (optional)
+   * inlineObject2 InlineObject2  (optional)
    * returns User-Info
    **/
   static registerUser(params) {

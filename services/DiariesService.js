@@ -5,12 +5,12 @@ class DiariesService {
 
   /**
    * Erzeuge ein neues Tagebuch.
-   * Der Owner wird automatisch durch die Authentifizierung ermittelt. Generell sollten Name und Patient bei Repräsentation angegeben werden, können aber auch leer (\"\") bleiben.
+   * Der Erzeuger des Tagebuches verwaltet es automatisch. Präferenzen beziehen sich immer auf den momentanen Nutzer. Beim erstellen eines Tagebuches, muss wenigstens der Name des Tagebuches in den Präferenzen hinterlegt werden.
    *
-   * diary Diary Eine Tagebuch Repräsentation (optional)
+   * inlineObject InlineObject  (optional)
    * returns full-diary
    **/
-  static addDiary({ diary }) {
+  static addDiary({ inlineObject }) {
     return new Promise(
       async (resolve) => {
         try {
@@ -171,7 +171,7 @@ class DiariesService {
     return new Promise(
       async (resolve) => {
         try {
-          resolve(Service.successResponse(JSON.stringify({ id: "kek", food: global.food })));
+          resolve(Service.successResponse(''));
         } catch (e) {
           resolve(Service.rejectResponse(
             e.message || 'Invalid input',
@@ -231,10 +231,10 @@ class DiariesService {
    * An dieser Stelle können die Basis Informationen eines Tagebuches aktualisiert werden. Um Medikamente, Insuline oder Tags zu aktualisieren, müssen die einzelnen Sub-Ressourcen verwendet werden. An dieser Stelle ist zu sehen, dass es nicht vorgesehen ist, den Besitzer eines Tagebuches zu ändern.
    *
    * diaryId String Die Id des Tagebuches.
-   * inlineObject InlineObject  (optional)
+   * inlineObject1 InlineObject1  (optional)
    * returns full-diary
    **/
-  static updateDiary({ diaryId, inlineObject }) {
+  static updateDiary({ diaryId, inlineObject1 }) {
     return new Promise(
       async (resolve) => {
         try {

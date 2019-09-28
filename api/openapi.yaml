@@ -1,13 +1,14 @@
 openapi: 3.0.0
 info:
-  description: 'Die ist die vorläufige REST-artige Schnittstelle, für das Dia-PC Projekt.
-    Diese Schnittstelle ist nicht REST, da sie nicht Hypermedialität benutzt - Das
-    bedeutet, der Client muss selbt Anfragen konstruieren. '
-  title: Diabetes Web-App
-  version: 1.0.0
+  description: Die ist die REST-artige Schnittstelle, für das DPC-Projekt.
+  title: DPC-API
+  version: 3.0.0
 externalDocs:
   description: Find out more about Swagger
   url: http://swagger.io
+servers:
+- description: Sandbox server (uses test data)
+  url: https://dia-pc.flexus.click/v1
 tags:
 - description: Basis-Daten über synchronisierte Tagebücher.
   name: diaries
@@ -32,29 +33,27 @@ tags:
 paths:
   /diaries:
     post:
-      description: Der Owner wird automatisch durch die Authentifizierung ermittelt.
-        Generell sollten Name und Patient bei Repräsentation angegeben werden, können
-        aber auch leer ("") bleiben.
+      description: Der Erzeuger des Tagebuches verwaltet es automatisch. Präferenzen
+        beziehen sich immer auf den momentanen Nutzer. Beim erstellen eines Tagebuches,
+        muss wenigstens der Name des Tagebuches in den Präferenzen hinterlegt werden.
       operationId: addDiary
       requestBody:
+        $ref: '#/components/requestBodies/inline_object'
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Diary'
-        description: Eine Tagebuch Repräsentation
+              properties:
+                preferences:
+                  $ref: '#/components/schemas/DiaryPreferences'
+              type: object
+        description: Eine Tagebuch Repräsentation mit preferences
       responses:
         201:
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/full-diary'
-          description: Das Tagebuch wurde erfolgreich erstellt. Falls der Client im
-            Accept-Header eine Repräsentation erwartet, wird ein JSON-Objekt zurück
-            gegeben. Wie hier die Adresse der neu erstellten Ressource zurückgegeben
-            wird, muss nochmal überprüft werden, da eine plötzliche Rückgabe einer
-            URL einen Bruch der Nicht-Hypermedialität darstellt! <br> Irgendwie ist
-            es auch nicht klar, wie man OpenAPI dazu bringt, einfach keinen Accept-Header
-            zu schicken, wenn man keine Repräsentation erwartet.
+          description: Repräsentation des erstellten Tagebuches
           headers:
             location:
               description: Die URL des erstellten Tagebuches
@@ -67,7 +66,7 @@ paths:
         400:
           description: Die Anfrage war fehlerhaft.
       security:
-      - basicAuth: []
+      - bearerAuth: []
       summary: Erzeuge ein neues Tagebuch.
       tags:
       - diaries
@@ -188,7 +187,7 @@ paths:
           type: string
         style: simple
       requestBody:
-        $ref: '#/components/requestBodies/inline_object'
+        $ref: '#/components/requestBodies/inline_object_1'
         content:
           application/json:
             schema:
@@ -891,6 +890,56 @@ paths:
       - Einträge
       x-openapi-router-controller: EintrgeController
       x-openapi-router-service: EintrgeService
+  /diaries/{diaryId}/contextUpdate:
+    post:
+      description: Falls kein expliziter Zeitpunkt angegeben wird, ist der aktualisierte
+        Kontext ab jetzt gültig. <br> Es werden nur Attribute angegeben, die geändert
+        werden sollen. Bei nicht erwähnten Attributen werden die Werte des Vorgängerkontexts
+        übernommen. Das bedeutet auch, dass bei einer Löschung von Attributen, explizit
+        ein null Wert gesetzt werde muss!
+      operationId: updateContext
+      parameters:
+      - description: Die Id des Tagebuches.
+        explode: false
+        in: path
+        name: diaryId
+        required: true
+        schema:
+          type: string
+        style: simple
+      - description: Ab welchen Zeitpunkt soll der Kontext gültig sein (Unix Timestamp)
+        explode: true
+        in: query
+        name: from
+        required: false
+        schema:
+          type: integer
+        style: form
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ContextUpdateRequest'
+        description: Eine Repräsentation der Kontextaktualisierung
+        required: true
+      responses:
+        200:
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ContextUpdateAnswer'
+          description: Repräenstation der Kontextaktualisierung
+        400:
+          description: Request war falsch
+        401:
+          description: Authorisierung erforderlich
+        403:
+          description: Nicht ausreichend Rechte
+      summary: Aktualisiere einen Kontext
+      tags:
+      - Kontexte
+      x-openapi-router-controller: KontexteController
+      x-openapi-router-service: KontexteService
   /diaries/{diaryId}/contexts:
     get:
       description: 'Es werden alle Kontexte für den ausgewählten Zeitraum zurückgegeben.
@@ -1052,7 +1101,7 @@ paths:
         wird ein ID-Token sowie der gewünschte Nutzername übergeben. '
       operationId: registerUser
       requestBody:
-        $ref: '#/components/requestBodies/inline_object_1'
+        $ref: '#/components/requestBodies/inline_object_2'
         content:
           application/json:
             schema:
@@ -1081,18 +1130,19 @@ paths:
   /user/diaries:
     get:
       operationId: getUserDiaries
-      parameters:
-      - description: 'TODO: spezifiziere den Filter genauer'
-        explode: true
-        in: query
-        name: searchSnipptet
-        required: true
-        schema:
-          type: string
-        style: form
       responses:
         200:
-          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/inline_response_200_5'
+          description: Tagebücher, die dem Nutzer gehören und auf die er Zugriff hat
+        401:
+          description: Nicht identifiziert!
+        400:
+          description: Die Anfrage war fehlerhaft.
+      security:
+      - bearerAuth: []
       summary: Get the diaries of the current user (from which the current user is
         the owner)
       tags:
@@ -1264,26 +1314,13 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/inline_object'
+    inline_object_2:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/inline_object_2'
   schemas:
     Diary:
-      example:
-        insulins:
-        - insulinType: fast
-          name: name
-          description: description
-        - insulinType: fast
-          name: name
-          description: description
-        drugs:
-        - name: name
-          description: description
-        - name: name
-          description: description
-        patient: patient
-        name: name
-        tags:
-        - tags
-        - tags
       properties:
         name:
           type: string
@@ -1318,6 +1355,7 @@ components:
     foodDescr:
       example:
         carbsFactor: 0.8008281904610115
+        name: name
         resorption: fast
         comment: comment
         id: id
@@ -1340,7 +1378,7 @@ components:
       type: object
     foodIntake:
       example:
-        amount: amount
+        amount: 1.4658129805029452
         food: ""
       properties:
         amount:
@@ -1409,12 +1447,27 @@ components:
       type: object
     Context:
       example:
-        id: id
-        CorrectionsFactors:
+        correctionsFactors:
           dailyCorrectionFactors:
           - 7.061401241503109
           - 7.061401241503109
           id: id
+        insulinConfig:
+          mappings:
+          - semantic: semantic
+            insulinId: insulinId
+            intakeType: intakeType
+          - semantic: semantic
+            insulinId: insulinId
+            intakeType: intakeType
+          defaultInsulin: defaultInsulin
+        insulinPumpPofileConfig:
+          mappings:
+          - profileId: profileId
+            name: name
+          - profileId: profileId
+            name: name
+        id: id
         frameValues:
           hyperglycemiaLimit: 1.4658129805029452
           hypoglycemiaLimit: 5.962133916683182
@@ -1436,9 +1489,139 @@ components:
           $ref: '#/components/schemas/FrameValueAttribute'
         keFactors:
           $ref: '#/components/schemas/KEFactors'
-        CorrectionsFactors:
+        correctionsFactors:
           $ref: '#/components/schemas/CorrectionsFactors'
+        insulinConfig:
+          $ref: '#/components/schemas/InsulinConfig'
+        insulinPumpPofileConfig:
+          $ref: '#/components/schemas/InsulinPumpProfileConfig'
       title: Ein Kontext eines Tagebuches
+      type: object
+    ContextUpdateRequest:
+      example:
+        contextUpdate:
+          correctionsFactors:
+            dailyCorrectionFactors:
+            - 7.061401241503109
+            - 7.061401241503109
+            id: id
+          insulinConfig:
+            mappings:
+            - semantic: semantic
+              insulinId: insulinId
+              intakeType: intakeType
+            - semantic: semantic
+              insulinId: insulinId
+              intakeType: intakeType
+            defaultInsulin: defaultInsulin
+          insulinPumpPofileConfig:
+            mappings:
+            - profileId: profileId
+              name: name
+            - profileId: profileId
+              name: name
+          frameValues:
+            hyperglycemiaLimit: 1.4658129805029452
+            hypoglycemiaLimit: 5.962133916683182
+            dailyBSGoalValues:
+            - 5.637376656633329
+            - 5.637376656633329
+            id: id
+            lowerBSLimit: 0.8008281904610115
+            higherBSLimit: 6.027456183070403
+          keFactors:
+            dailyKEFactors:
+            - 2.3021358869347655
+            - 2.3021358869347655
+            id: id
+      properties:
+        contextUpdate:
+          $ref: '#/components/schemas/ContextUpdateRequest_contextUpdate'
+      title: Eine Kontextaktualisierung (Request)
+      type: object
+    ContextUpdateAnswer:
+      example:
+        updatedContext:
+          correctionsFactors:
+            dailyCorrectionFactors:
+            - 7.061401241503109
+            - 7.061401241503109
+            id: id
+          insulinConfig:
+            mappings:
+            - semantic: semantic
+              insulinId: insulinId
+              intakeType: intakeType
+            - semantic: semantic
+              insulinId: insulinId
+              intakeType: intakeType
+            defaultInsulin: defaultInsulin
+          insulinPumpPofileConfig:
+            mappings:
+            - profileId: profileId
+              name: name
+            - profileId: profileId
+              name: name
+          id: id
+          frameValues:
+            hyperglycemiaLimit: 1.4658129805029452
+            hypoglycemiaLimit: 5.962133916683182
+            dailyBSGoalValues:
+            - 5.637376656633329
+            - 5.637376656633329
+            id: id
+            lowerBSLimit: 0.8008281904610115
+            higherBSLimit: 6.027456183070403
+          keFactors:
+            dailyKEFactors:
+            - 2.3021358869347655
+            - 2.3021358869347655
+            id: id
+      properties:
+        updatedContext:
+          $ref: '#/components/schemas/Context'
+      title: Eine Kontextaktualisierung (Answer)
+      type: object
+    InsulinPumpProfileConfig:
+      example:
+        mappings:
+        - profileId: profileId
+          name: name
+        - profileId: profileId
+          name: name
+      properties:
+        mappings:
+          items:
+            $ref: '#/components/schemas/InsulinPumpProfileConfig_mappings'
+          type: array
+      title: Die Insulinpumpemprofilkonfiguration
+      type: object
+    InsulinConfig:
+      example:
+        mappings:
+        - semantic: semantic
+          insulinId: insulinId
+          intakeType: intakeType
+        - semantic: semantic
+          insulinId: insulinId
+          intakeType: intakeType
+        defaultInsulin: defaultInsulin
+      properties:
+        mappings:
+          items:
+            $ref: '#/components/schemas/InsulinConfig_mappings'
+          type: array
+        defaultInsulin:
+          type: string
+      title: Die Insulinkonfiguration
+      type: object
+    DiaryPreferences:
+      example:
+        name: name
+      properties:
+        name:
+          type: string
+      title: Die Präfernzen für ein Tagebuch
       type: object
     CorrectionsFactors:
       example:
@@ -1529,7 +1712,7 @@ components:
         bloodSugar: 6.027456183070403
         acitvity:
           duration: duration
-          strain: 5
+          strain: 2
           description: description
         comment: comment
         medication:
@@ -1538,13 +1721,13 @@ components:
           intakeDescription: intakeDescription
         id: id
         foodIntakes:
-        - amount: amount
+        - amount: 1.4658129805029452
           food: ""
-        - amount: amount
+        - amount: 1.4658129805029452
           food: ""
         tempBasalChange:
-          duration: 1
-          percentage: 5.962133916683182
+          duration: 5
+          percentage: 5.637376656633329
         insulinIntakes:
         - ""
         - ""
@@ -1565,7 +1748,7 @@ components:
           type: number
         insulinIntakes:
           items:
-            anyOf:
+            oneOf:
             - $ref: '#/components/schemas/timeStampInsulinIntake'
             - $ref: '#/components/schemas/intervallInsulinIntake'
           type: array
@@ -1602,6 +1785,8 @@ components:
         - name: name
           active: true
           id: id
+        preferences:
+          name: name
         drugs:
         - name: name
           active: true
@@ -1612,10 +1797,12 @@ components:
         id: id
         food:
         - carbsFactor: 0.8008281904610115
+          name: name
           resorption: fast
           comment: comment
           id: id
         - carbsFactor: 0.8008281904610115
+          name: name
           resorption: fast
           comment: comment
           id: id
@@ -1629,6 +1816,8 @@ components:
       properties:
         id:
           type: string
+        preferences:
+          $ref: '#/components/schemas/DiaryPreferences'
         owner:
           $ref: '#/components/schemas/fulldiary_owner'
         food:
@@ -1649,6 +1838,11 @@ components:
           type: array
       type: object
     inline_object:
+      properties:
+        preferences:
+          $ref: '#/components/schemas/DiaryPreferences'
+      type: object
+    inline_object_1:
       properties:
         patient:
           type: string
@@ -1706,7 +1900,7 @@ components:
           bloodSugar: 6.027456183070403
           acitvity:
             duration: duration
-            strain: 5
+            strain: 2
             description: description
           comment: comment
           medication:
@@ -1715,13 +1909,13 @@ components:
             intakeDescription: intakeDescription
           id: id
           foodIntakes:
-          - amount: amount
+          - amount: 1.4658129805029452
             food: ""
-          - amount: amount
+          - amount: 1.4658129805029452
             food: ""
           tempBasalChange:
-            duration: 1
-            percentage: 5.962133916683182
+            duration: 5
+            percentage: 5.637376656633329
           insulinIntakes:
           - ""
           - ""
@@ -1734,7 +1928,7 @@ components:
           bloodSugar: 6.027456183070403
           acitvity:
             duration: duration
-            strain: 5
+            strain: 2
             description: description
           comment: comment
           medication:
@@ -1743,13 +1937,13 @@ components:
             intakeDescription: intakeDescription
           id: id
           foodIntakes:
-          - amount: amount
+          - amount: 1.4658129805029452
             food: ""
-          - amount: amount
+          - amount: 1.4658129805029452
             food: ""
           tempBasalChange:
-            duration: 1
-            percentage: 5.962133916683182
+            duration: 5
+            percentage: 5.637376656633329
           insulinIntakes:
           - ""
           - ""
@@ -1766,12 +1960,27 @@ components:
     inline_response_200_3:
       example:
         contexts:
-        - id: id
-          CorrectionsFactors:
+        - correctionsFactors:
             dailyCorrectionFactors:
             - 7.061401241503109
             - 7.061401241503109
             id: id
+          insulinConfig:
+            mappings:
+            - semantic: semantic
+              insulinId: insulinId
+              intakeType: intakeType
+            - semantic: semantic
+              insulinId: insulinId
+              intakeType: intakeType
+            defaultInsulin: defaultInsulin
+          insulinPumpPofileConfig:
+            mappings:
+            - profileId: profileId
+              name: name
+            - profileId: profileId
+              name: name
+          id: id
           frameValues:
             hyperglycemiaLimit: 1.4658129805029452
             hypoglycemiaLimit: 5.962133916683182
@@ -1786,12 +1995,27 @@ components:
             - 2.3021358869347655
             - 2.3021358869347655
             id: id
-        - id: id
-          CorrectionsFactors:
+        - correctionsFactors:
             dailyCorrectionFactors:
             - 7.061401241503109
             - 7.061401241503109
             id: id
+          insulinConfig:
+            mappings:
+            - semantic: semantic
+              insulinId: insulinId
+              intakeType: intakeType
+            - semantic: semantic
+              insulinId: insulinId
+              intakeType: intakeType
+            defaultInsulin: defaultInsulin
+          insulinPumpPofileConfig:
+            mappings:
+            - profileId: profileId
+              name: name
+            - profileId: profileId
+              name: name
+          id: id
           frameValues:
             hyperglycemiaLimit: 1.4658129805029452
             hypoglycemiaLimit: 5.962133916683182
@@ -1832,27 +2056,104 @@ components:
           items:
             $ref: '#/components/schemas/inline_response_200_4_users'
           type: array
-    inline_object_1:
+    inline_object_2:
       properties:
         username:
           type: string
         idToken:
           type: string
       type: object
-    Diary_drugs:
+    inline_response_200_5:
       example:
-        name: name
-        description: description
+        owned:
+        - owner:
+            name: name
+            id: id
+          insulins:
+          - name: name
+            active: true
+            id: id
+          - name: name
+            active: true
+            id: id
+          preferences:
+            name: name
+          drugs:
+          - name: name
+            active: true
+            id: id
+          - name: name
+            active: true
+            id: id
+          id: id
+          food:
+          - carbsFactor: 0.8008281904610115
+            name: name
+            resorption: fast
+            comment: comment
+            id: id
+          - carbsFactor: 0.8008281904610115
+            name: name
+            resorption: fast
+            comment: comment
+            id: id
+          tags:
+          - name: name
+            active: true
+            id: id
+          - name: name
+            active: true
+            id: id
+        - owner:
+            name: name
+            id: id
+          insulins:
+          - name: name
+            active: true
+            id: id
+          - name: name
+            active: true
+            id: id
+          preferences:
+            name: name
+          drugs:
+          - name: name
+            active: true
+            id: id
+          - name: name
+            active: true
+            id: id
+          id: id
+          food:
+          - carbsFactor: 0.8008281904610115
+            name: name
+            resorption: fast
+            comment: comment
+            id: id
+          - carbsFactor: 0.8008281904610115
+            name: name
+            resorption: fast
+            comment: comment
+            id: id
+          tags:
+          - name: name
+            active: true
+            id: id
+          - name: name
+            active: true
+            id: id
+      properties:
+        owned:
+          items:
+            $ref: '#/components/schemas/full-diary'
+          type: array
+    Diary_drugs:
       properties:
         name:
           type: string
         description:
           type: string
     Diary_insulins:
-      example:
-        insulinType: fast
-        name: name
-        description: description
       properties:
         name:
           type: string
@@ -1883,8 +2184,8 @@ components:
           type: string
     EntryRepr_tempBasalChange:
       example:
-        duration: 1
-        percentage: 5.962133916683182
+        duration: 5
+        percentage: 5.637376656633329
       properties:
         duration:
           description: Die Zeit in der die Basalrate der Pumpe geändert werden soll
@@ -1905,7 +2206,7 @@ components:
     EntryRepr_acitvity:
       example:
         duration: duration
-        strain: 5
+        strain: 2
         description: description
       properties:
         duration:
@@ -1927,6 +2228,74 @@ components:
         defaultDiary:
           description: Das Tagebuch, dass der Nutzer standarmäßig ausgewählt haben
             möchte
+          type: string
+    ContextUpdateRequest_contextUpdate:
+      example:
+        correctionsFactors:
+          dailyCorrectionFactors:
+          - 7.061401241503109
+          - 7.061401241503109
+          id: id
+        insulinConfig:
+          mappings:
+          - semantic: semantic
+            insulinId: insulinId
+            intakeType: intakeType
+          - semantic: semantic
+            insulinId: insulinId
+            intakeType: intakeType
+          defaultInsulin: defaultInsulin
+        insulinPumpPofileConfig:
+          mappings:
+          - profileId: profileId
+            name: name
+          - profileId: profileId
+            name: name
+        frameValues:
+          hyperglycemiaLimit: 1.4658129805029452
+          hypoglycemiaLimit: 5.962133916683182
+          dailyBSGoalValues:
+          - 5.637376656633329
+          - 5.637376656633329
+          id: id
+          lowerBSLimit: 0.8008281904610115
+          higherBSLimit: 6.027456183070403
+        keFactors:
+          dailyKEFactors:
+          - 2.3021358869347655
+          - 2.3021358869347655
+          id: id
+      properties:
+        frameValues:
+          $ref: '#/components/schemas/FrameValueAttribute'
+        keFactors:
+          $ref: '#/components/schemas/KEFactors'
+        correctionsFactors:
+          $ref: '#/components/schemas/CorrectionsFactors'
+        insulinConfig:
+          $ref: '#/components/schemas/InsulinConfig'
+        insulinPumpPofileConfig:
+          $ref: '#/components/schemas/InsulinPumpProfileConfig'
+    InsulinPumpProfileConfig_mappings:
+      example:
+        profileId: profileId
+        name: name
+      properties:
+        name:
+          type: string
+        profileId:
+          type: string
+    InsulinConfig_mappings:
+      example:
+        semantic: semantic
+        insulinId: insulinId
+        intakeType: intakeType
+      properties:
+        semantic:
+          type: string
+        intakeType:
+          type: string
+        insulinId:
           type: string
     EntryReprResponse_medication:
       example:
