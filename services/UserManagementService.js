@@ -35,11 +35,12 @@ class UserManagementService {
    *
    * returns inline_response_200_5
    **/
-  static getUserDiaries() {
+  static getUserDiaries({auth}) {
     return new Promise(
       async (resolve) => {
         try {
-          resolve(Service.successResponse(''));
+          let decoded = await global.validate(auth.split(" ")[1]);
+          resolve(Service.successResponse(JSON.stringify({owned:[{id:22, preferences:{name:"mein Tagebuch"}}]})));
         } catch (e) {
           resolve(Service.rejectResponse(
             e.message || 'Invalid input',
