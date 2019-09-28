@@ -21,7 +21,10 @@ class EintrgeService {
               element.food = global.food.find(x => x.id == element.food);
             });
           }
-          global.entries.push(params.body);
+          if (!global.entries.get(params.diaryId)) {
+            global.entries.set(params.diaryId, []);
+          }
+          global.entries.get(params.diaryId).push(params.body);
           resolve(Service.successResponse(JSON.stringify(params.body)));
         } catch (e) {
           resolve(Service.rejectResponse(
@@ -73,7 +76,10 @@ class EintrgeService {
       async (resolve) => {
         try {
           //await global.validate(params.auth.split(" ")[1]);
-          resolve(Service.successResponse(JSON.stringify({ entries: global.entries })));
+          if (!global.entries.get(params.diaryId)) {
+            global.entries.set(params.diaryId, []);
+          }
+          resolve(Service.successResponse(JSON.stringify({ entries: global.entries.get(params.diaryId) })));
         } catch (e) {
           resolve(Service.rejectResponse(
             e.message || 'Invalid input',
