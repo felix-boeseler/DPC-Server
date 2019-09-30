@@ -10,11 +10,21 @@ class DiariesService {
    * inlineObject InlineObject  (optional)
    * returns full-diary
    **/
-  static addDiary({ inlineObject }) {
+  static addDiary(params) {
     return new Promise(
       async (resolve) => {
         try {
-          resolve(Service.successResponse(''));
+          let { inlineObject, auth } = params;
+          inlineObject = params.body;
+          let decoded = await global.validate(auth.split(" ")[1]);
+          let user = global.users.get(decoded.sub);
+          if (!user) {
+            throw new { status: 401 };
+          }
+          let diaryId = Math.ceil(Math.random() * 1000);
+          user.diaryPrefs.set(diaryId, { name: inlineObject.preferences.name });
+          global.diaries.set(diaryId, { entries: [] });
+          resolve(Service.successResponse(JSON.stringify({ id: diaryId, preferences: { name: inlineObject.preferences.name } })));
         } catch (e) {
           resolve(Service.rejectResponse(
             e.message || 'Invalid input',

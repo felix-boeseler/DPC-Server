@@ -44,7 +44,8 @@ global.food = [{ id: "asdasds", name: "Pizza", resorption: "medium", carbsFactor
 { id: "asdasds11", name: "Frühstücks-Brot", resorption: "medium", carbsFactor: 0.5, comment: "asdad" }
 ];
 
-global.users = new Map;
+global.users = new Map();
+global.diaries = new Map();
 
 const express = require("express");
 const jwt = require("express-jwt");

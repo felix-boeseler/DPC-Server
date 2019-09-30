@@ -35,12 +35,21 @@ class UserManagementService {
    *
    * returns inline_response_200_5
    **/
-  static getUserDiaries({auth}) {
+  static getUserDiaries({ auth }) {
     return new Promise(
       async (resolve) => {
         try {
           let decoded = await global.validate(auth.split(" ")[1]);
-          resolve(Service.successResponse(JSON.stringify({owned:[{id:22, preferences:{name:"mein Tagebuch"}}]})));
+          let user = global.users.get(decoded.sub);
+          if (!user) {
+            throw new { status: 401 };
+          }
+          let diaryRefs = [];
+          for (var [key, value] of user.diaryPrefs) {
+            diaryRefs.push({ id: key, preferences: value });
+            console.log(key + " = " + value);
+          }
+          resolve(Service.successResponse(JSON.stringify({ owned: diaryRefs })));
         } catch (e) {
           resolve(Service.rejectResponse(
             e.message || 'Invalid input',
@@ -86,6 +95,7 @@ class UserManagementService {
         try {
           let decoded = jwt.decode(params.body.idToken);
           let newUser = { name: params.body.username, id: Math.ceil(Math.random() * 1000), preferences: { defaultDiary: "ked" + Math.ceil(Math.random() * 1000) } };
+          newUser.diaryPrefs = new Map();
           global.users.set(decoded.sub, newUser);
           resolve(Service.successResponse(JSON.stringify(newUser)));
         } catch (e) {
