@@ -162,7 +162,7 @@ paths:
         400:
           description: Die Anfrage war fehlerhaft.
       security:
-      - basicAuth: []
+      - bearerAuth: []
       summary: Bekomme alle statischen Informationen über ein Tagebuch.
       tags:
       - diaries

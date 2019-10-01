@@ -177,11 +177,18 @@ class DiariesService {
    * diaryId String Die Id des Tagebuches.
    * returns full-diary
    **/
-  static getDiary2({ diaryId }) {
+  static getDiary2({ diaryId, auth }) {
     return new Promise(
       async (resolve) => {
+        diaryId = Number.parseInt(diaryId);
+        let decoded = await global.validate(auth.split(" ")[1]);
+        let user = global.users.get(decoded.sub);
+        if (!user) {
+          throw new { status: 401 };
+        }
+        let prefs = user.diaryPrefs.get(diaryId);
         try {
-          resolve(Service.successResponse(JSON.stringify({ id: "kek", food: global.food })));
+          resolve(Service.successResponse(JSON.stringify({ id: "kek", food: global.food, preferences: {name: prefs.name} })));
         } catch (e) {
           resolve(Service.rejectResponse(
             e.message || 'Invalid input',
