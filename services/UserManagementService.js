@@ -94,7 +94,7 @@ class UserManagementService {
       async (resolve) => {
         try {
           let decoded = jwt.decode(params.body.idToken);
-          let newUser = { name: params.body.username, id: Math.ceil(Math.random() * 1000), preferences: { defaultDiary: "ked" + Math.ceil(Math.random() * 1000) } };
+          let newUser = { name: params.body.username, id: Math.ceil(Math.random() * 1000), preferences: null };
           newUser.diaryPrefs = new Map();
           global.users.set(decoded.sub, newUser);
           resolve(Service.successResponse(JSON.stringify(newUser)));
