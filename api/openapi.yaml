@@ -1745,7 +1745,7 @@ components:
           type: number
         insulinIntakes:
           items:
-            oneOf:
+            anyOf:
             - $ref: '#/components/schemas/timeStampInsulinIntake'
             - $ref: '#/components/schemas/intervallInsulinIntake'
           type: array
