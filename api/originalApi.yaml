@@ -1,0 +1,1091 @@
+openapi: 3.0.0
+info:
+  description: "Dies ist die RESTartige Schnittstelle für das DPC-Projekt. <br> 
+                Einzelne Manipulationsendpunkte, wie z.B. für Nahrungen (Post, Patch, Delete), wurden erst einmal vernachlässigt und müssen später nachgefügt werden."
+  version: '4.0.0'
+  title: 'DPC-API'
+tags:
+  - name: 'diaries'
+    description: 'Basisfunktionalitäten und Daten von Tagebüchern'
+  - name: 'contexts'
+    description: 'Operationen und Daten in Bezug auf Kontexte'
+  - name: 'entries'
+    description: 'Operationen und Daten in Bezug auf Einträge'
+  - name: 'user-management'
+    description: 'Nutzer- und Rechtemanagement'
+  - name: 'util'
+    description: 'Erweiterte Funktionalitäten (Bolusrechner, Mustersuche, etc.)'
+paths:
+  /diaries:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - 'diaries'
+      summary: 'Erhalte Basisinformationen aller Tagebücher, auf die der Nutzer Zugriff hat'
+      description: 'Zugriff bedeutet Freigabe oder dass der Nutzer ein Tagebuch besitzt.'
+      operationId: 'getDiaries'
+      responses:
+        200:
+          description: 'Tagebücher, die dem Nutzer gehören oder auf die er Zugriff hat'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  owned:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/diaryOverview'
+                  grants:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/grantAnswer'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - 'diaries'
+      summary: 'Erzeuge ein neues Tagebuch (wird automatisch vom Erzeuger verwaltet)'
+      description: 'Der Erzeuger des Tagebuches verwaltet es automatisch. Es muss ein Name angegeben werden - dies ist dann jedoch nur eine Präferenz für den Nutzer!'
+      operationId: 'addDiary'
+      requestBody:
+        description: 'Tagebuchinformationen'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/diaryCreateRequest'
+      responses:
+        201:
+          description: 'Repräsentation des erstellten Tagebuches (erst einmal leer)'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/diaryResponse'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+  /diaries/{diaryId}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - 'diaries'
+      summary: 'Alle generellen Informationen über ein Tagebuch (Statisch, Kontext, Präferenzen)'
+      description: 'Alle wichtigsten Informationen über ein Tagebuch, die für die grundlegende Darstellung notwendig sind. Ist besonders relevant für Datenerfassungssichten.'
+      operationId: 'getDiary'
+      parameters:
+        - name: 'diaryId'
+          in: 'path'
+          description: 'Die Id des Tagebuches'
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Repräsentation genereller Informationen über Tagebuch'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/diaryResponse'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+        403:
+          description: 'Nutzer darf diese Aktion nicht ausführen!'
+    delete:
+      security:
+        - bearerAuth: []
+      tags:
+        - 'diaries'
+      summary: 'Tagebuch löschen (nur vom Verwalter des Tagebuches)'
+      description: 'Nur der Besitzer eines Tagebuches kann auch das Tagebuch löschen. Dieses Recht wird implizit aus der Authentifizierung abgeleitet und kann nicht delegiert werden.'
+      operationId: 'deleteDiary'
+      parameters:
+        - name: 'diaryId'
+          in: 'path'
+          description: 'Die Id des Tagebuches'
+          required: true
+          schema:
+            type: string
+      responses:
+        202:
+          description: 'Das Tagebuch wird gelöscht'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+        403:
+          description: 'Nutzer darf diese Aktion nicht ausführen!'
+  /diaries/{diaryId}/entries:
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - 'entries'
+      summary: 'Erstelle einen neuen Eintrag'
+      description: 'Erstelle einen Tagebucheintrag - der Zeitstempel ist notwendig und es muss mindestens ein Attribut angegeben werden.'
+      operationId: 'addDiaryEntry'
+      requestBody:
+        description: 'Eine Repräsentation des zu erstellenden Tagebuch-Eintrages'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/entryRequest'
+      parameters:
+        - name: 'diaryId'
+          in: 'path'
+          description: 'Die ID des Tagebuches'
+          required: true
+          schema:
+            type: string
+      responses:
+        201:
+          description: 'Eintrag erfolgreich erstellt'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/entryResponse'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+        403:
+          description: 'Nutzer darf diese Aktion nicht ausführen!'
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - 'entries'
+      summary: 'Erhalte Einträge (optional als Pages)'
+      description: 'Die Einträge können als Pages bezogen werden.'
+      operationId: 'getDiaryEntries'
+      parameters:
+        - name: 'diaryId'
+          in: 'path'
+          description: 'Die Id des Tagebuches.'
+          required: true
+          schema:
+            type: string
+        - name: 'from'
+          in: 'query'
+          description: 'Zeit in Unix-Zeit (Einschließlich)'
+          required: false
+          schema:
+            type: integer
+        - name: 'to'
+          in: 'query'
+          description: 'Zeit in Unix-Zeit (Einschließlich)'
+          required: false
+          schema:
+            type: integer
+        - name: 'limit'
+          in: 'query'
+          description: 'Die Anzahl der maximalen Einträge, die als Page zurückgegeben werden sollen'
+          required: false
+          schema:
+            type: integer
+        - name: 'order'
+          in: 'query'
+          description: 'Ob die Einträge beginnend von dem ältesten oder neusten Eintrag sortiert zurückgegeben werden sollen - Default ist desc'
+          required: false
+          schema:
+            type: string
+            enum: [asc, desc]
+        - name: 'page'
+          in: 'query'
+          description: 'Nur gültig falls limit angegeben wurde - Default ist dann Page 0'
+          required: false
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Die Einträge des Tagebuches'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  _meta:
+                    type: object
+                    properties:
+                      pages:
+                        type: number
+                      currentPage:
+                        type: number
+                  entries:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/entryResponse'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+        403:
+          description: 'Nutzer darf diese Aktion nicht ausführen!'
+  /diaries/{diaryId}/entries/{entryId}:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - 'entries'
+      summary: 'Erhalte eine detaillierte Repräsentation eines Eintrages (z.B. mit Historie)'
+      description: 'Hier sollten alle ausführlichen Informationen angeboten werden, die es zu einem Eintrag gibt - z.B. Modifikationshistorie.'
+      operationId: 'getDiaryEntry'
+      parameters:
+        - name: 'diaryId'
+          in: 'path'
+          description: 'Die Id des Tagebuches.'
+          required: true
+          schema:
+            type: string
+        - name: 'entryId'
+          in: 'path'
+          description: 'Id des Eintrages'
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'Repräsentation des Eintrages'
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/entryResponse'
+                  - type: object
+                    properties:
+                      modificationHistory:
+                        type: object
+                        description: 'TODO: muss spezifiziert werden'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+        403:
+          description: 'Nutzer darf diese Aktion nicht ausführen!'
+    delete:
+      security:
+        - bearerAuth: []
+      tags:
+        - 'entries'
+      summary: 'Lösche einen Eintrag'
+      description: 'Löschproblematik beachten!'
+      operationId: 'deleteDiaryEntry'
+      parameters:
+        - name: 'diaryId'
+          in: 'path'
+          description: 'Die Id des Tagebuches.'
+          required: true
+          schema:
+            type: string
+        - name: 'entryId'
+          in: 'path'
+          description: 'Id des Eintrages'
+          required: true
+          schema:
+            type: string
+      responses:
+        202:
+          description: 'wird gelöscht'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+        403:
+          description: 'Nutzer darf diese Aktion nicht ausführen!'
+  /diaries/{diaryId}/contextUpdate: 
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - 'contexts'
+      summary: 'Aktualisiere einen Kontext'
+      operationId: 'updateContext'
+      description: 'Falls kein expliziter Zeitpunkt angegeben wird, ist der aktualisierte Kontext ab jetzt gültig.<br> Es werden nur Attribute angegeben, die geändert werden sollen. Bei nicht erwähnten Attributen werden die Werte des Vorgängerkontexts übernommen. Das bedeutet auch, dass bei einer Löschung von Attributen, explizit ein null Wert gesetzt werde muss!'
+      requestBody:
+        description: 'Eine Repräsentation der Kontextaktualisierung'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/contextUpdateRequest'
+        required: true
+      parameters:
+        - name: 'diaryId'
+          in: 'path'
+          description: 'Die Id des Tagebuches'
+          required: true
+          schema:
+            type: string
+        - name: 'from'
+          in: 'query'
+          description: 'Ab welchen Zeitpunkt soll der Kontext gültig sein (Unix Timestamp)'
+          required: false
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Repräsentation der Kontextaktualisierung'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/contextUpdateAnswer'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+        403:
+          description: 'Nutzer darf diese Aktion nicht ausführen!'
+  /diaries/{diaryId}/contexts:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - 'contexts'
+      summary: 'Erhalte Kontexte oder Kontext für Zeitraum oder Zeitpunkt'
+      operationId: 'getDiaryContexts'
+      description: 'Es werden alle GÜLTIGEN Kontexte für den ausgewählten Zeitraum oder Zeitpunkt zurückgegeben. <br>
+        Falls es für einen Zeitraum oder Zeitpunkt keinen Nutzer spezifizierten Kontext gibt, so greift der Root-Kontext ohne Gültigkeitszeitstempel!<br> Es muss ENTWEDER from mit to ODER for angegeben werden.'
+      parameters:
+        - name: 'diaryId'
+          in: 'path'
+          description: 'Die Id des Tagebuches.'
+          required: true
+          schema:
+            type: string
+        - name: 'from'
+          in: 'query'
+          description: 'Ab welchen Zeitpunkt (Relevant für Darstellung von mehreren Einträgen)'
+          required: false
+          schema:
+            type: integer
+        - name: 'to'
+          in: 'query'
+          description: 'Bis welchen Zeitpunkt (Relevant für Darstellung von mehreren Einträgen)'
+          required: false
+          schema:
+            type: integer
+        - name: 'for'
+          in: 'query'
+          description: 'Der Zeitpunkt (Relevant für Datenerfassungssichten)'
+          required: false
+          schema:
+            type: integer
+      responses:
+        200:
+          description: 'Repräenstation der Liste von Kontexten (nie leer)'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  contexts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Context'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+        403:
+          description: 'Nutzer darf diese Aktion nicht ausführen!'
+  /self:
+    get:
+      security:
+        - bearerAuth: []
+      operationId: 'getSelf'
+      tags:
+        - 'user-management'
+      summary: 'Erhalte eigene Informationen (Name, Standardtagebuch, etc.)'
+      description: 'Erhalte Basisinformationen und Präferenzen eines Nutzer anhand dessen Token. Vor allem auch wichtig, um zu prüfen, ob es einen Nutzer schon gibt.'
+      responses:
+        200:
+          description: 'Basisinformationen über den Nutzer'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/userInfo'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+  /users:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - 'user-management'
+      summary: 'Erhalte Basisinformationen über andere Nutzer (vor allem für Suche um Freigaben zu vergeben)'
+      description: 'Dieser Endpunkt soll genutzt werden, um Nutzer zu suchen, um diesen Freigaben zu geben. Dementsprechend muss immer ein Searchsnippet mitgelifert werden, um die Auswahl einzuschränken.'
+      operationId: 'getUsers'
+      parameters:
+        - name: 'searchSnipptet'
+          in: 'query'
+          description: 'Es werden alle Nutzer mit den Namen gelefiert, die diesen Snippet enthalten'
+          required: true
+          schema:
+            type: string
+            minimum: 2
+      responses:
+        200:
+          description: 'successful operation'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  users:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/baseUserInfo'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+    post:
+      tags:
+        - 'user-management'
+      summary: 'Registriere einen neuen Nutzer (anhand Token)'
+      description: 'Bei der Registrierung wird ein Token sowie der gewünschte Nutzername übergeben.'
+      operationId: 'registerUser'
+      requestBody:
+        description: 'Eine Repräsentation des zu erstellenden Nutzers'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                token:
+                  type: string
+      responses:
+        201:
+          description: 'Nutzer erstellt'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/userInfo'
+        400:
+          description: 'fehlerhafte Anfrage/Name schon vergeben'
+
+  /diaries/{diaryId}/grants:
+    get:
+      security:
+        - bearerAuth: []
+      tags:
+        - 'user-management'
+      summary: 'Freigaben, die anderen Nutzern auf das Tagebuch gegeben wurden'
+      description: 'Diese Informationen sollten nur abrufbar sein, wenn der momentane Nutzer auch Besitzer des Tagebuches ist. Mit diesen Informationen sollen die Zugriffe gesteuert werden können.'
+      operationId: 'getGrantsForDiary'
+      parameters:
+        - name: 'diaryId'
+          in: 'path'
+          description: 'Die Id des Tagebuches'
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: 'die Freigaben'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  grants:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/grantAnswer'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+        403:
+          description: 'Nutzer darf diese Aktion nicht ausführen!'
+    post:
+      security:
+        - bearerAuth: []
+      tags:
+        - 'user-management'
+      summary: 'Gebe einem Nutzer eine Freigabe auf das Tagebuch'
+      description: 'Diese Aktion ist nur von dem Besitzer des Tagebuches ausführbar!'
+      operationId: 'grantAccessToUser'
+      parameters:
+        - name: 'diaryId'
+          in: 'path'
+          description: 'Die Id des Tagebuches'
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: 'Die Freigabe'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/grantRequest'
+      responses:
+        201:
+          description: 'die erstellte Freigabe'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/grantAnswer'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+        403:
+          description: 'Nutzer darf diese Aktion nicht ausführen!'
+  /diaries/{diaryId}/bolusRecommendation:
+    post:
+      security:
+        - bearerAuth: []
+      summary: 'Erhalte einen Bolusvorschlag für einen Zeitpunkt'
+      description: 'Dieser End-Point muss eigentlich mit einen GET-Verb arbeiten, jedoch wird aus Realisierungsgründen mit Swagger ein overloaded Post verwendet. <br> Es ist die zeitbasierte Arbeitsweise zu beachten! Die übergebenen Einträge werden konzeptionell für das gesuchte Muster beachtet. So wird beispielsweise ein vorher getätigter Eintrag auch beachtet, wenn dieser nahe am for Zeitpunkt liegt. Die übergebenen Einträge werden aber NICHT in das Tagebuch übernommen - dies muss noch explizit geschehen!'
+      parameters: 
+        - in: path
+          name: diaryId
+          schema:
+            type: string
+          required: true
+          description: Die Id des Tagebuches
+        - in: query
+          name: for
+          schema:
+            type: integer
+          required: false
+          description: (Optional) Für welchen Zeitpunkt soll der Vorschlag sein. Als Default Wert wird der jetzige Zeitpunkt genommen.
+      tags:
+        - 'util'
+      requestBody:
+        description: 'Die Freigabe'
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                patternEntries:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/entryRequest'
+      operationId: 'getBolusRecommendation'
+      responses:
+        200:
+          description: 'Bolusvoschlag'
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  insulinIntakes:
+                    type: array
+                    items:
+                      anyOf:
+                        - $ref: '#/components/schemas/intervallInsulinIntake'
+                        - $ref: '#/components/schemas/timeStampInsulinIntake'
+                  fastKe:
+                    $ref: '#/components/schemas/foodIntakeAnswer'
+        400:
+          description: 'fehlerhafte Anfrage'
+        401:
+          description: 'fehlende oder ungültige Authentifizierung'
+        403:
+          description: 'Nutzer darf diese Aktion nicht ausführen!'
+components:
+  securitySchemes:
+    bearerAuth:            
+      type: http
+      scheme: bearer
+      bearerFormat: JWT 
+  schemas:
+    # -- user and grant management --:
+    grantAnswer:
+      title: 'Tagebuchfreigabe(Antwort)'
+      properties:
+        id:
+          type: string
+        grantedRight:
+          type: string
+          enum: ['R','RW']
+        diary:
+          $ref: '#/components/schemas/diaryOverview'
+        user:
+          $ref: '#/components/schemas/baseUserInfo'
+    grantRequest:
+      title: 'Tagebuchfreigabe(Anfrage)'
+      properties:
+        grantedRight:
+          type: string
+          enum: ['R','RW']
+        diaryId:
+          type: string
+        userId:
+          type: string
+    baseUserInfo:
+      title: 'Basisinformationen Nutzer'
+      type: object
+      properties:
+        name:
+          type: string
+          description: 'Name des Nutzers'
+        id:
+          type: string
+          description: 'Nutzer-Id'
+    userInfo:
+      title: 'Nutzer'
+      allOf:
+        - $ref: '#/components/schemas/baseUserInfo'
+        - type: object
+          properties:
+            preferences:
+              type: object
+              properties:
+                defaultDiary:
+                  $ref: '#/components/schemas/diaryOverview'
+    diaryPreferences:
+      title: 'Tagebuchpräferenzen'
+      type: object
+      properties:
+        name:
+          type: string
+    # -- entries --
+    entryRequest:
+      title: 'Eintrag(Anfrage)'
+      type: object
+      properties:
+        timeStamp:
+          type: integer
+          description: 'Unix-Zeit'
+        bloodSugar:
+          type: number
+          description: 'Blutzucker in mmol/l'
+        insulinIntakes:
+          type: array
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/timeStampInsulinIntakeRequest'
+              - $ref: '#/components/schemas/intervallInsulinIntakeRequest'
+        foodIntakes:
+          type: array
+          items:
+            $ref: '#/components/schemas/foodIntakeRequest'
+        comment:
+          type: string
+        tempBasalChange:
+          type: object
+          properties:
+            endTimeStamp:
+              type: number
+            percentage:
+              type: number
+            absolut:
+              type: number
+            description:
+              type: string
+        drugIntake:
+          type: object
+          properties:
+            description:
+              type: string
+            drugId:
+              type: string
+            amount:
+              type: number
+        acitvity:
+          type: object
+          properties:
+            endTimeStamp:
+              type: number
+            description:
+              type: string
+            strain:
+              type: integer
+              enum: [-2,-1,0,1,2]
+        tagIds:
+          type: array
+          items:
+            type: string
+      required:
+        - timestamp
+    entryResponse:
+      title: 'Eintrag(Anwtort)'
+      type: object
+      properties:
+        id:
+          type: string
+        timeStamp:
+          type: integer
+          description: 'Unix-Zeit'
+        bloodSugar:
+          type: number
+          description: 'Blutzucker in mmol/l'
+        insulinIntakes:
+          type: array
+          items:
+            anyOf:
+              - $ref: '#/components/schemas/timeStampInsulinIntake'
+              - $ref: '#/components/schemas/intervallInsulinIntake'
+        foodIntakes:
+          type: array
+          items:
+            $ref: '#/components/schemas/foodIntakeAnswer'
+        comment:
+          type: string
+        tempBasalChange:
+          type: object
+          properties:
+            endTimeStamp:
+              type: number
+            canceledTimestamp:
+              type: number
+            percentage:
+              type: number
+            absolut:
+              type: number
+            description:
+              type: string
+        drugIntake:
+          type: object
+          properties:
+            description:
+              type: string
+            drug:
+              $ref: '#/components/schemas/drug'
+            amount:
+              type: number
+        acitvity:
+          type: object
+          properties:
+            endTimeStamp:
+              type: number
+            canceledTimestamp:
+              type: number
+            description:
+              type: string
+            strain:
+              type: integer
+              enum: [-2,-1,0,1,2]
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/tag'
+    # -- entries attributes --
+    foodIntakeRequest:
+      title: 'Nahrungsaufnahme(Anfrage)'
+      type: object
+      properties:
+        amount:
+          type: number
+          description: 'in KH nicht in KE!'
+        food:
+          anyOf:
+            - $ref: '#/components/schemas/food'
+            - type: string
+              description: 'Die Id der gespeicherten Nahrung'
+    foodIntakeAnswer:
+      title: 'Nahrungsaufnahme(Antwort)'
+      type: object
+      properties:
+        amount:
+          type: number
+          description: 'in KH nicht in KE!'
+        food:
+          anyOf:
+            - $ref: '#/components/schemas/food'
+            - $ref: '#/components/schemas/databaseFood'
+    timeStampInsulinIntakeRequest:
+      title: 'Insulinzeitpunktabgabe(Anfrage)'
+      type: object
+      properties:
+        semanticIdentefier:
+         type: string
+        amount:
+         type: number
+    intervallInsulinIntakeRequest:
+      title: 'Insulinintervallabgabe(Anfrage)'
+      allOf:
+        - $ref: '#/components/schemas/timeStampInsulinIntakeRequest'
+        - type: object
+          properties:
+            endTimeStamp:
+              type: number
+    timeStampInsulinIntake:
+      title: 'Insulinzeitpunktabgabe(Antwort)'
+      allOf:
+        - $ref: '#/components/schemas/timeStampInsulinIntakeRequest'
+        - type: object
+          properties:
+            insulin:
+              $ref: '#/components/schemas/insulin'
+    intervallInsulinIntake:
+      title: 'Insulinintervallabgabe(Antwort)'
+      allOf:
+        - $ref: '#/components/schemas/intervallInsulinIntakeRequest'
+        - type: object
+          properties:
+            insulin:
+              $ref: '#/components/schemas/insulin'
+            canceledTimestamp:
+              type: number
+    # -- contexts --
+    Context:
+      title: 'Kontext'
+      type: object
+      properties:
+        id:
+          type: string
+        validFrom:
+          type: number
+        frameValues:
+          $ref: '#/components/schemas/frameValueAttribute'
+        keFactors:
+          $ref: '#/components/schemas/keFactors'
+        correctionsFactors:
+          $ref: '#/components/schemas/correctionsFactors'
+        insulinConfig:
+          $ref: '#/components/schemas/insulinConfig'
+        insulinPumpPofileConfig:
+          $ref: '#/components/schemas/insulinPumpProfileConfig'
+    contextUpdateRequest:
+      title: 'Kontextaktualisierung(Anfrage)'
+      type: object
+      properties:
+        contextUpdate:
+          type: object
+          properties:
+            frameValues:
+              $ref: '#/components/schemas/frameValueAttribute'
+            keFactors:
+              $ref: '#/components/schemas/keFactors'
+            correctionsFactors:
+              $ref: '#/components/schemas/correctionsFactors'
+            insulinConfig:
+              $ref: '#/components/schemas/insulinConfig'
+            insulinPumpPofileConfig:
+              $ref: '#/components/schemas/insulinPumpProfileConfig'
+    contextUpdateAnswer:
+      title: 'Kontextaktualisierung(Anwtort)'
+      type: object
+      properties:
+        updatedContext:
+          $ref: '#/components/schemas/Context'
+    # -- contextAttributes --
+    insulinPumpProfileConfig:
+      title: 'Insulinpumpenprofilkonfiguration'
+      type: object
+      properties:
+        id:
+          type: string
+        mappings:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              profileId:
+                type: string
+    insulinConfig:
+      title:  'Insulinkonfiguration'
+      type: object
+      properties:
+        id:
+          type: string
+        mappings:
+          type: array
+          items:
+            type: object
+            properties:
+              semantic:
+                type: string
+              intakeType:
+                type: string
+              insulinId:
+                type: string
+        defaultInsulin:
+          type: string
+    correctionsFactors:
+      title: 'Korrekturfaktoren'
+      type: object
+      properties:
+        id:
+          type: string
+        dailyCorrectionFactors:
+          type: array
+          description: '24 stündig'
+          items:
+            type: number
+    keFactors:
+      title: 'KE-Faktoren'
+      type: object
+      properties:
+        id:
+          type: string
+        dailyKEFactors:
+          type: array
+          description: '24 stündig'
+          items:
+            type: number
+    frameValueAttribute:
+      title: 'BZ-Rahmenwerte'
+      type: object
+      properties:
+        id:
+          type: string
+        lowerBSLimit:
+          type: number
+        higherBSLimit:
+          type: number
+        hyperglycemiaLimit:
+          type: number
+        hypoglycemiaLimit:
+          type: number
+        dailyBSGoalValues:
+          type: array
+          description: '24 stündig'
+          items:
+            type: number
+    # -- diaries --
+    diaryOverview:
+      title: 'Basistagebuchinformationen'
+      description: 'Relevant, wenn sich z.B. der Nutzer alle Tagebücher anschaut, auf die er Zugriff hat'
+      type: object
+      properties:
+        id:
+          type: string
+        preferences:
+          $ref: '#/components/schemas/diaryPreferences'
+        owner:
+          type: object
+          properties:
+            name:
+              type: string
+            id:
+              type: string
+    diaryCreateRequest:
+      title: 'Tagebucherstellung'
+      type: object
+      description: 'Beim Erstellen macht nur die Übergabe des Namens Sinn'
+      properties:
+        name:
+          type: string
+    diaryResponse:
+      title: 'Tagebuch'
+      type: object
+      properties:
+        id:
+          type: string
+        owner:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        preferences:
+          $ref: '#/components/schemas/diaryPreferences'
+        staticInformation:
+          $ref: '#/components/schemas/staticInformation'
+        currentContext:
+          $ref: '#/components/schemas/Context'
+    # -- static Information --
+    staticInformation:
+      title: 'Statische Informationen'
+      description: 'Die statischen Informationen des Tagebuches. Diese werden immer alle auf einmal aufgerufen, da das Abrufen aller einzelnen Informationen keinen Sinn macht (Performance)'
+      type: object
+      properties:
+        insulins:
+          type: array
+          items:
+            $ref: '#/components/schemas/insulin'
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/tag'
+        drugs:
+          type: array
+          items:
+            $ref: '#/components/schemas/drug'
+        food:
+          type: array
+          items:
+            $ref: '#/components/schemas/databaseFood'
+        generalInfo:
+          $ref: '#/components/schemas/generalStaticInformation'
+    baseStaticItem:
+      title: 'Statisches Basisitem(abstrakt)'
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+    insulin:
+      title: 'Insulin'
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/baseStaticItem'
+        - type: object
+          properties:
+            manufacturer:
+              type: string
+            impact:
+              type: integer
+              description: 'Impact bedeutet Wirkungsschnelligkeit (genauere Spezifikation notwendig)'
+    tag:
+      title: 'Tag'
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/baseStaticItem'
+    drug:
+      title: 'Medikament'
+      type: object
+      allOf:
+        - $ref: '#/components/schemas/baseStaticItem'
+        - type: object
+          properties:
+            manufacturer:
+              type: string
+            unit:
+              type: string
+              description: 'Spezifizierte Abgabeeinheit'
+    food:
+      title: 'Nahrung'
+      type: object
+      properties:
+        resorption:
+          type: string
+          enum: [fast, medium, slow]
+        carbsFactor:
+          type: number
+        comment:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+    databaseFood:
+      title: 'Gespeicherte Nahrung'
+      allOf:
+        - $ref: '#/components/schemas/food'
+        - type: object
+          properties:
+            id:
+              type: string
+    generalStaticInformation:
+      title: 'Allgemeine statische Informationen'
+      type: object
+      properties:
+        diabetesType:
+          type: string
+          enum: ['one', 'two']
+      
