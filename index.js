@@ -60,11 +60,10 @@ const authConfig = {
   audience: "kekorino"
 };
 
-
+// Token-Validierung
 var client = jwksRsa({
   jwksUri: `https://${authConfig.domain}/.well-known/jwks.json`
 });
-
 
 function getKey(header, callback) {
   client.getSigningKey(header.kid, function (err, key) {
@@ -87,5 +86,3 @@ global.validate = (token) => {
     })
   });
 };
-
-
